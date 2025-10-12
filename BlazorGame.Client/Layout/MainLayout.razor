@@ -1,16 +1,25 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+<div class="dungeon-theme">
+    <div class="page">
+        <div class="sidebar dungeon-sidebar">
+            <NavMenu />
         </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
+        <main class="dungeon-main">
+            <div class="top-row dungeon-top-row px-4">
+                <div class="dungeon-brand">
+                    <img src="images/logo.png" alt="BlazorGameQuest" class="brand-logo" />
+                    <span>BlazorGameQuest</span>
+                </div>
+                <div class="top-row px-4">
+                    <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+                </div>
+            </div>
+
+            <article class="content dungeon-content px-4">
+                @Body
+            </article>
+        </main>
+    </div>
 </div>
