@@ -1,4 +1,4 @@
-# BlazorGameQuest (Oumou CAMARA & Lucas Baury)
+# BlazorGameQuest (Oumou Camara & Lucas Baury)
 
 ## Description
 BlazorGameQuest est un jeu d’aventure développé avec **.NET 9 / C#** et **Blazor WebAssembly**.  
