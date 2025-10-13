@@ -40,6 +40,7 @@ Pour lancer les tests :
 dotnet test
 ```
 
+
 ## Lancer le projet
 ```bash
 dotnet run --project BlazorGame.Client
