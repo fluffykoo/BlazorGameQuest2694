@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
-using GameServices.Data;
+using AuthenticationServices.Data;
 
 namespace GameServices.Controllers
 {
@@ -9,9 +9,9 @@ namespace GameServices.Controllers
     [Route("api/[controller]")]
     public class PartieController : ControllerBase
     {
-        private readonly GameDbContext _context;
+        private readonly AventureDbContext _context;
 
-        public PartieController(GameDbContext context)
+        public PartieController(AventureDbContext context)
         {
             _context = context;
         }

@@ -1,17 +1,17 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
-using GameServices.Data;
+using AuthenticationServices.Data;
 
-namespace GameServices.Controllers
+namespace AuthenticationServices.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class SalleController : ControllerBase
     {
-        private readonly GameDbContext _context;
+        private readonly AventureDbContext _context;
 
-        public SalleController(GameDbContext context)
+        public SalleController(AventureDbContext context)
         {
             _context = context;
         }
