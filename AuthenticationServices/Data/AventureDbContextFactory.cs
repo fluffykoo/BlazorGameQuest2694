@@ -27,7 +27,7 @@ public class AventureDbContextFactory : IDesignTimeDbContextFactory<AventureDbCo
         optionsBuilder.UseNpgsql(
             "Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres");
 
-        // 🔎 Test direct
+        // Test direct de connexion
         try
         {
             using var conn = new Npgsql.NpgsqlConnection(
