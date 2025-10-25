@@ -14,6 +14,8 @@ public class AventureDbContext : DbContext
     public DbSet<Joueur> Joueurs { get; set; }
     public DbSet<Partie> Parties { get; set; }
     public DbSet<Salle> Salles { get; set; }
+    public DbSet<Donjon> Donjons { get; set; }
+    public DbSet<Administrateur> Administrateurs { get; set; }
 
     //  Configuration des relations
     protected override void OnModelCreating(ModelBuilder modelBuilder)

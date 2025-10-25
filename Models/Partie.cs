@@ -12,6 +12,10 @@ public class Partie
     public Guid JoueurId { get; set; } // Référence au joueur
     public Joueur? Joueur { get; set; } // navigation inverse
 
+    [ForeignKey(nameof(Donjon))]
+    public Guid DonjonId { get; set; }
+    public Donjon? Donjon { get; set; }
+
     [InverseProperty(nameof(Salle.Partie))]
     public List<Salle> Salles { get; set; } = new(); // Donjon composé de plusieurs salles
 

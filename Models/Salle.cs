@@ -35,6 +35,10 @@ public class Salle
     public Guid PartieId { get; set; }
     public Partie? Partie { get; set; }
 
+    [ForeignKey(nameof(Donjon))]
+    public Guid DonjonId { get; set; }
+    public Donjon? Donjon { get; set; }
+    
     public int Position { get; set; }// Numéro de la salle dans le donjon
     public string Description { get; set; } = string.Empty;// Texte affiché au joueur
     public NiveauDifficulte Niveau { get; set; }// Difficulté de la salle
