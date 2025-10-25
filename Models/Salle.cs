@@ -1,5 +1,6 @@
-using System.ComponentModel;
-
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 namespace Models;
 
 public enum NiveauDifficulte
@@ -16,6 +17,7 @@ public enum ChoixAction
     Fuir,
     Fouiller,
 }
+[Owned]//indique à EF Core que ce n’est pas une entité indépendante
 public class ActionResultat
 {
     public ChoixAction Action { get; set; }
@@ -26,7 +28,13 @@ public class ActionResultat
 
 public class Salle
 {
+    [Key]
     public Guid Id { get; set; } = Guid.NewGuid();// Identifiant unique de la salle
+
+    [ForeignKey(nameof(Partie))]
+    public Guid PartieId { get; set; }
+    public Partie? Partie { get; set; }
+
     public int Position { get; set; }// Numéro de la salle dans le donjon
     public string Description { get; set; } = string.Empty;// Texte affiché au joueur
     public NiveauDifficulte Niveau { get; set; }// Difficulté de la salle
