@@ -116,8 +116,11 @@ Les classes principales (`Joueur`, `Partie`, `Salle`) existaient déjà dans la 
 Elles définissaient la structure du jeu : les joueurs, les parties et les salles d’un donjon.
 
 ###  Nouveautés version 2
-Dans cette version, nous avons ajouté **les attributs et relations EF Core** pour permettre la génération automatique  
-des tables et des clés étrangères.
+Dans cette version, nous avons ajouté :
+
+- les attributs et relations EF Core pour générer automatiquement les tables et clés étrangères sur les modèles déja présents,
+
+- deux nouveaux modèles : `Administrateur` et `Donjon`.
 
 #### Exemple :
 ```csharp
@@ -135,10 +138,20 @@ public Guid PartieId { get; set; }
 [InverseProperty(nameof(Partie.Salles))]
 public Partie? Partie { get; set; }
 ```
+### Nouveaux modèles
+
+**Administrateur.cs**  
+Permet de gérer les joueurs et les parties.  
+
+
+**Donjon.cs**  
+Représente le lieu principal d’une partie (ensemble de salles générées aléatoirement).  
 
 Ces ajouts permettent à **Entity Framework Core** de reconnaître les relations :
 - `Joueur` → plusieurs `Parties`  
 - `Partie` → plusieurs `Salles`
+- `Administrateur` → plusieurs `Joueurs`
+- `Donjon` → plusieurs `Salles`
 
 ---
 
@@ -173,10 +186,12 @@ Ces ajouts permettent à **Entity Framework Core** de reconnaître les relations
 
 4. **Vérification dans PostgreSQL (Docker)**
    Les tables suivantes ont été créées :
-   - `Joueurs`
-   - `Parties`
-   - `Salles`
-   - `__EFMigrationsHistory`
+- `Joueurs`
+- `Parties`
+- `Salles`
+- `Administrateurs`
+- `Donjons`
+- `__EFMigrationsHistory`
 
 *(capture terminal PostgreSQL affichant les tables)*
 
@@ -186,13 +201,69 @@ Ces ajouts permettent à **Entity Framework Core** de reconnaître les relations
 
 ### Fichiers concernés
 - `/AuthenticationServices/Controllers/JoueursController.cs`
+- `/AuthenticationServices/Controllers/AdministrateursController.cs`
+- `/AuthenticationServices/Controllers/DonjonsController.cs`
+- `/AuthenticationServices/Controllers/PartieController.cs`
+- `/AuthenticationServices/Controllers/SalleController.cs`
+
+<details>
+<summary> Fonctionnalités CRUD </summary>
 
 ###  Fonctionnalités CRUD
-- `GET /api/Joueurs` → liste tous les joueurs  
-- `GET /api/Joueurs/{id}` → récupère un joueur précis  
-- `POST /api/Joueurs` → ajoute un joueur  
-- `PUT /api/Joueurs/{id}` → met à jour un joueur  
-- `DELETE /api/Joueurs/{id}` → supprime un joueur  
+
+#### JoueursController
+
+- `GET /api/Joueurs` → liste tous les joueurs
+- `GET /api/Joueurs/{id}` → récupère un joueur précis
+- `POST /api/Joueurs` → ajoute un joueur
+- `PUT /api/Joueurs/{id}` → met à jour un joueur
+- `DELETE /api/Joueurs/{id}` → supprime un joueur
+#### AdministrateursController
+
+- `GET /api/Administrateurs` → liste tous les administrateurs
+- `GET /api/Administrateurs/{id}` → récupère un administrateur
+- `POST /api/Administrateurs` → ajoute un administrateur
+- `PUT /api/Administrateurs/{id}` → met à jour un administrateur
+- `DELETE /api/Administrateurs/{id}` → supprime un administrateur
+
+#### DonjonsController
+
+- `GET /api/Donjons` → liste tous les donjons
+- `GET /api/Donjons/{id}` → récupère un donjon
+- `POST /api/Donjons` → ajoute un nouveau donjon
+- `PUT /api/Donjons/{id}` → met à jour un donjon
+- `DELETE /api/Donjons/{id}` → supprime un donjon
+
+#### PartieController
+
+Ce contrôleur permet de gérer les parties (sessions de jeu).\
+Il utilise **Entity Framework Core** et gère les relations entre `Partie`, `Joueur` et `Salle`.
+
+**Fonctionnalités principales :**
+
+- `GET /api/Partie` → récupère toutes les parties
+- `GET /api/Partie/{id}` → récupère une partie spécifique
+- `GET /api/Partie/joueur/{joueurId}` → récupère les parties d’un joueur donné
+- `POST /api/Partie` → crée une nouvelle partie
+- `PUT /api/Partie/{id}` → met à jour une partie
+- `PATCH /api/Partie/{id}/terminer` → termine une partie et enregistre le score final
+- `DELETE /api/Partie/{id}` → supprime une partie
+
+#### SalleController
+
+Ce contrôleur gère les **salles** d’un donjon ou d’une partie, en lien direct avec l’entité `Partie`.
+
+**Fonctionnalités principales :**
+
+- `GET /api/Salle` → récupère toutes les salles
+- `GET /api/Salle/{id}` → récupère une salle spécifique
+- `GET /api/Salle/partie/{partieId}` → récupère les salles d’une partie
+- `POST /api/Salle` → ajoute une salle
+- `POST /api/Salle/batch` → ajoute plusieurs salles d’un coup
+- `PUT /api/Salle/{id}` → modifie une salle
+- `PATCH /api/Salle/{id}/action` → exécute une action du joueur dans la salle (`Combattre`, `Fouiller`, `Fuir`)
+- `DELETE /api/Salle/{id}` → supprime une salle
+</details>
 
 *(capture Swagger affichant les endpoints )*
 
@@ -222,8 +293,6 @@ Les requêtes POST créent bien des entrées visibles dans PostgreSQL (via Docke
 ---
 
 ## 5. Tests Unitaires
-- Les tests unitaires de la version 1 (`BlazorGame.Tests`) ont été conservés.  
-- Des tests d’intégration sur les endpoints seront ajoutés dans la version 3.
 
 ---
 </details>
