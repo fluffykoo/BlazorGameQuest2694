@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Models;
 using AuthenticationServices.Data;
 
-namespace GameServices.Controllers
+namespace AuthenticationServices.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
