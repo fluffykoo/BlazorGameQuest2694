@@ -34,7 +34,7 @@ Les tests se trouvent dans `BlazorGame.Tests/`.
 - SalleTests.cs : création d’une salle, description non vide, difficulté correcte
 - PartieTests.cs : identifiant unique, nombre de salles entre 1 et 5, EstTerminee = false
 - EnumsAndActionResultatTests.cs : valeurs des enums valides, test du comportement d’ActionResultat
- 
+- ControllerTest.cs : test la création de chaque modèle dans la base de donnée avec leurs atributs.
 
 Pour lancer les tests :
 ```bash
@@ -193,7 +193,6 @@ Ces ajouts permettent à **Entity Framework Core** de reconnaître les relations
 - `Donjons`
 - `__EFMigrationsHistory`
 
-*(capture terminal PostgreSQL affichant les tables)*
 
 ---
 
@@ -265,7 +264,6 @@ Ce contrôleur gère les **salles** d’un donjon ou d’une partie, en lien dir
 - `DELETE /api/Salle/{id}` → supprime une salle
 </details>
 
-*(capture Swagger affichant les endpoints )*
 
 ---
 
@@ -288,11 +286,6 @@ Swagger est accessible à :
 Tous les endpoints CRUD ont été testés avec succès.  
 Les requêtes POST créent bien des entrées visibles dans PostgreSQL (via Docker).
 
-*(capture à insérer : Swagger avec réponse JSON d’un joueur créé)*
-
----
-
-## 5. Tests Unitaires
 
 ---
 </details>
