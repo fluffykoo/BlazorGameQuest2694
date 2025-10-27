@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+#fichier memo commandes(Oumou)
+commands_dev.md

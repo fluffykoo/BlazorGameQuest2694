@@ -11,11 +11,12 @@ Un administrateur gère les joueurs et les scores via une interface dédiée.
 | Projet | Rôle |
 |--------|------|
 | **BlazorGame.Client** | Frontend Blazor WebAssembly (pages, navigation, composant Salle). |
-| **AuthenticationServices** | Future API d’authentification (Keycloak). |
+| **AuthenticationServices** | API et gestion de la base de données (PostgreSQL + EF Core). |
 | **Models** | Classes métiers (Joueur, Partie, Salle). |
 | **BlazorGame.Tests** | Tests unitaires (xUnit). |
-
 ---
+<details>
+<summary>Version 1 – Base du projet (Blazor + structure)</summary>
 
 ## Fonctionnalités de la Version 1
 - Structure complète de la solution .NET.  
@@ -94,4 +95,204 @@ dotnet run
 | Gain de points | Vérifier que l’action attribue correctement les points | Choix "Combattre" | `Points` > 0 |
 | Perte de points | Vérifier la pénalité sur une mauvaise action | Choix "Fouiller" → Piège | `Points` < 0 |
 | Détection de piège | Vérifier la valeur du booléen `EstPiege` | Action piégée | `EstPiege = true` |
+</details>
 
+---
+<details open>
+<summary>Version 2 – Base de données et API</summary>
+
+# Version 2 – BlazorGameQuest
+
+## Objectif de la version 2
+L’objectif de cette version est d’ajouter **la persistance des données** grâce à **Entity Framework Core** et **PostgreSQL**,  
+et d’exposer les **API REST** permettant d’interagir avec les entités du jeu (`Joueur`, `Partie`, `Salle`) via **Swagger**.
+
+---
+
+## 1. Modélisation et Base de Données
+
+### Modèles déjà présents (version 1)
+Les classes principales (`Joueur`, `Partie`, `Salle`) existaient déjà dans la version 1.  
+Elles définissaient la structure du jeu : les joueurs, les parties et les salles d’un donjon.
+
+###  Nouveautés version 2
+Dans cette version, nous avons ajouté :
+
+- les attributs et relations EF Core pour générer automatiquement les tables et clés étrangères sur les modèles déja présents,
+
+- deux nouveaux modèles : `Administrateur` et `Donjon`.
+
+#### Exemple :
+```csharp
+// Partie.cs
+[ForeignKey(nameof(Joueur))]
+public Guid JoueurId { get; set; }
+
+[InverseProperty(nameof(Salle.Partie))]
+public List<Salle> Salles { get; set; } = new();
+
+// Salle.cs
+[ForeignKey(nameof(Partie))]
+public Guid PartieId { get; set; }
+
+[InverseProperty(nameof(Partie.Salles))]
+public Partie? Partie { get; set; }
+```
+### Nouveaux modèles
+
+**Administrateur.cs**  
+Permet de gérer les joueurs et les parties.  
+
+
+**Donjon.cs**  
+Représente le lieu principal d’une partie (ensemble de salles générées aléatoirement).  
+
+Ces ajouts permettent à **Entity Framework Core** de reconnaître les relations :
+- `Joueur` → plusieurs `Parties`  
+- `Partie` → plusieurs `Salles`
+- `Administrateur` → plusieurs `Joueurs`
+- `Donjon` → plusieurs `Salles`
+
+---
+
+## 2. Configuration EF Core et PostgreSQL
+
+###  Fichiers concernés
+- `/AuthenticationServices/Data/AventureDbContext.cs`  
+- `/AuthenticationServices/Data/AventureDbContextFactory.cs`  
+- `/AuthenticationServices/Program.cs`
+
+### Étapes réalisées
+
+1. **Installation des dépendances**
+   ```bash
+   dotnet add package Microsoft.EntityFrameworkCore
+   dotnet add package Microsoft.EntityFrameworkCore.Design
+   dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
+   dotnet add package Swashbuckle.AspNetCore
+   ```
+
+2. **Configuration du DbContext**
+   ```csharp
+   builder.Services.AddDbContext<AventureDbContext>(options =>
+       options.UseNpgsql("Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres"));
+   ```
+
+3. **Création des migrations**
+   ```bash
+   dotnet ef migrations add InitialCreate
+   dotnet ef database update
+   ```
+
+4. **Vérification dans PostgreSQL (Docker)**
+   Les tables suivantes ont été créées :
+- `Joueurs`
+- `Parties`
+- `Salles`
+- `Administrateurs`
+- `Donjons`
+- `__EFMigrationsHistory`
+
+*(capture terminal PostgreSQL affichant les tables)*
+
+---
+
+## 3. Création des Microservices REST
+
+### Fichiers concernés
+- `/AuthenticationServices/Controllers/JoueursController.cs`
+- `/AuthenticationServices/Controllers/AdministrateursController.cs`
+- `/AuthenticationServices/Controllers/DonjonsController.cs`
+- `/AuthenticationServices/Controllers/PartieController.cs`
+- `/AuthenticationServices/Controllers/SalleController.cs`
+
+<details>
+<summary> Fonctionnalités CRUD </summary>
+
+###  Fonctionnalités CRUD
+
+#### JoueursController
+
+- `GET /api/Joueurs` → liste tous les joueurs
+- `GET /api/Joueurs/{id}` → récupère un joueur précis
+- `POST /api/Joueurs` → ajoute un joueur
+- `PUT /api/Joueurs/{id}` → met à jour un joueur
+- `DELETE /api/Joueurs/{id}` → supprime un joueur
+#### AdministrateursController
+
+- `GET /api/Administrateurs` → liste tous les administrateurs
+- `GET /api/Administrateurs/{id}` → récupère un administrateur
+- `POST /api/Administrateurs` → ajoute un administrateur
+- `PUT /api/Administrateurs/{id}` → met à jour un administrateur
+- `DELETE /api/Administrateurs/{id}` → supprime un administrateur
+
+#### DonjonsController
+
+- `GET /api/Donjons` → liste tous les donjons
+- `GET /api/Donjons/{id}` → récupère un donjon
+- `POST /api/Donjons` → ajoute un nouveau donjon
+- `PUT /api/Donjons/{id}` → met à jour un donjon
+- `DELETE /api/Donjons/{id}` → supprime un donjon
+
+#### PartieController
+
+Ce contrôleur permet de gérer les parties (sessions de jeu).\
+Il utilise **Entity Framework Core** et gère les relations entre `Partie`, `Joueur` et `Salle`.
+
+**Fonctionnalités principales :**
+
+- `GET /api/Partie` → récupère toutes les parties
+- `GET /api/Partie/{id}` → récupère une partie spécifique
+- `GET /api/Partie/joueur/{joueurId}` → récupère les parties d’un joueur donné
+- `POST /api/Partie` → crée une nouvelle partie
+- `PUT /api/Partie/{id}` → met à jour une partie
+- `PATCH /api/Partie/{id}/terminer` → termine une partie et enregistre le score final
+- `DELETE /api/Partie/{id}` → supprime une partie
+
+#### SalleController
+
+Ce contrôleur gère les **salles** d’un donjon ou d’une partie, en lien direct avec l’entité `Partie`.
+
+**Fonctionnalités principales :**
+
+- `GET /api/Salle` → récupère toutes les salles
+- `GET /api/Salle/{id}` → récupère une salle spécifique
+- `GET /api/Salle/partie/{partieId}` → récupère les salles d’une partie
+- `POST /api/Salle` → ajoute une salle
+- `POST /api/Salle/batch` → ajoute plusieurs salles d’un coup
+- `PUT /api/Salle/{id}` → modifie une salle
+- `PATCH /api/Salle/{id}/action` → exécute une action du joueur dans la salle (`Combattre`, `Fouiller`, `Fuir`)
+- `DELETE /api/Salle/{id}` → supprime une salle
+</details>
+
+*(capture Swagger affichant les endpoints )*
+
+---
+
+## 4. Ajout et test de Swagger
+
+### Fichier modifié
+- `/AuthenticationServices/Program.cs`
+
+### Code ajouté
+```csharp
+builder.Services.AddSwaggerGen();
+app.UseSwagger();
+app.UseSwaggerUI();
+```
+
+### Test
+Swagger est accessible à :  
+`http://localhost:5040/swagger`
+
+Tous les endpoints CRUD ont été testés avec succès.  
+Les requêtes POST créent bien des entrées visibles dans PostgreSQL (via Docker).
+
+*(capture à insérer : Swagger avec réponse JSON d’un joueur créé)*
+
+---
+
+## 5. Tests Unitaires
+
+---
+</details>
