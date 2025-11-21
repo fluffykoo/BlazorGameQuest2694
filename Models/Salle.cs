@@ -36,8 +36,7 @@ public class Salle
     public Guid PartieId { get; set; }
     public Partie? Partie { get; set; }
 
-    // Rendu nullable (?) car dans la V3 générée procéduralement, 
-    // la salle appartient à la Partie, pas forcément à un "Donjon" prédéfini.
+    // la salle appartient à la Partie.
     [ForeignKey(nameof(Donjon))]
     public Guid? DonjonId { get; set; } 
     public Donjon? Donjon { get; set; }
