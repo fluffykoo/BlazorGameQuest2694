@@ -1,0 +1,60 @@
+@page "/regles"
+
+<PageTitle>Règles du Jeu</PageTitle>
+
+<div class="container mt-4">
+    <h1 class="text-warning mb-4">Règles de l'Aventure</h1>
+
+    <div class="card bg-dark text-white border-warning mb-3">
+        <div class="card-body">
+            <h3 class="card-title text-warning">But du jeu</h3>
+            <p>Vous incarnez un aventurier explorant un donjon généré aléatoirement. Votre objectif est de survivre à 5 salles consécutives et d'accumuler le maximum de points.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card bg-secondary text-white h-100">
+                <div class="card-header border-danger text-danger fw-bold">⚔️ Combattre</div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Risque :</strong> Élevé.</li>
+                        <li><strong>Réussite :</strong> Dépend de votre force vs celle du monstre.</li>
+                        <li><strong>Gain :</strong> Beaucoup de points (10 à 30 pts).</li>
+                        <li><strong>Échec :</strong> Perte de PV importante.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+             <div class="card bg-secondary text-white h-100">
+                <div class="card-header border-info text-info fw-bold">🏃 Fuir</div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Risque :</strong> Faible.</li>
+                        <li><strong>Réussite :</strong> 75% de chance.</li>
+                        <li><strong>Gain :</strong> Peu de points (2 pts).</li>
+                        <li><strong>Échec :</strong> Le monstre vous frappe de dos (dégâts réduits).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+             <div class="card bg-secondary text-white h-100">
+                <div class="card-header border-success text-success fw-bold">🔍 Fouiller</div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Risque :</strong> Moyen.</li>
+                        <li><strong>Réussite :</strong> 50% de chance de trouver un objet.</li>
+                        <li><strong>Gain :</strong> Variable (5 pts) ou Bonus (Soin).</li>
+                        <li><strong>Échec :</strong> Vous tombez sur un piège (-PV).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-danger mt-4">
+        <strong>☠️ Fin de partie :</strong> La partie se termine si vos PV tombent à 0 ou si vous terminez le donjon.
+    </div>
+</div>

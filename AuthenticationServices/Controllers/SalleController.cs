@@ -101,29 +101,76 @@ namespace AuthenticationServices.Controllers
             return NoContent();
         }
 
-        // PATCH: api/Salle/5/action
+        // PATCH: api/Salle/{id}/action
         [HttpPatch("{id}/action")]
-        public async Task<IActionResult> ExecuterAction(Guid id, [FromBody] ChoixAction action)
+        public async Task<ActionResult<ActionResultat>> ExecuterAction(Guid id, [FromBody] ChoixAction action)
         {
-            var salle = await _context.Salles.FindAsync(id);
-            if (salle == null)
+            var salle = await _context.Salles.Include(s => s.Partie).FirstOrDefaultAsync(s => s.Id == id);
+            if (salle == null || salle.Partie == null) return NotFound();
+
+            if (salle.ChoixFait != null) return BadRequest("Action déjà effectuée dans cette salle.");
+
+            var resultat = new ActionResultat { Action = action };
+            var random = new Random();
+
+            // Logique de jeu V3
+            switch (action)
             {
-                return NotFound();
+                case ChoixAction.Combattre:
+                    bool victoire = random.Next(100) > 30; // 70% de chance
+                    if (victoire)
+                    {
+                        resultat.Points = 50 * (int)salle.Niveau;
+                        resultat.Message = $"Victoire ! Vous avez terrassé le {salle.NomMonstre}.";
+                        salle.PvMonstre = 0;
+                    }
+                    else
+                    {
+                        resultat.Points = 0;
+                        resultat.Message = $"Échec... Le {salle.NomMonstre} vous a blessé.";
+                        // Perte de PV (Simulée ici, idéalement ajouter un champ PV sur Joueur ou Partie)
+                    }
+                    break;
+
+                case ChoixAction.Fuir:
+                    resultat.Points = 10;
+                    resultat.Message = "Vous avez fui lâchement mais vous êtes en vie.";
+                    break;
+
+                case ChoixAction.Fouiller:
+                    bool tresor = random.Next(100) > 50;
+                    if (tresor)
+                    {
+                        resultat.Points = 30;
+                        resultat.Message = "Vous avez trouvé une potion rare !";
+                    }
+                    else
+                    {
+                        resultat.Points = -10;
+                        resultat.EstPiege = true;
+                        resultat.Message = "C'était un piège ! Vous perdez des PV.";
+                    }
+                    break;
             }
 
+            // Mise à jour de l'état
             salle.ChoixFait = action;
-            // Ici tu pourras ajouter la logique pour générer le résultat de l'action
-            salle.Resultat = new ActionResultat
+            salle.Resultat = resultat;
+            salle.EstVisitee = true;
+            
+            // Mise à jour du score global de la partie
+            salle.Partie.ScoreFinal += resultat.Points;
+            
+            // Vérifier si c'était la dernière salle (Position 5)
+            if (salle.Position >= 5)
             {
-                Action = action,
-                Points = CalculerPoints(action, salle.Niveau),
-                EstPiege = false, // À implémenter
-                Message = $"Action {action} exécutée avec succès"
-            };
+                salle.Partie.EstTerminee = true;
+                resultat.Message += " (FIN DU DONJON)";
+            }
 
             await _context.SaveChangesAsync();
 
-            return Ok(salle.Resultat);
+            return Ok(resultat);
         }
 
         // DELETE: api/Salle/5
