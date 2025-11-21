@@ -1,47 +1,56 @@
 @page "/nouvelle-aventure"
+@using Models
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
 
 <PageTitle>Nouvelle Aventure</PageTitle>
 
 <div class="simple-adventure-page">
     <div class="adventure-header">
         <h1>🚀 Nouvelle Aventure</h1>
-        <p>Choisissez comment commencer votre quête</p>
+        <p>Choisissez votre destinée</p>
     </div>
 
-    <div class="adventure-options">
-        <!-- Option 1 : Aventure Guidée -->
-        <div class="option-card">
-            <div class="option-icon">🎮</div>
-            <h3>Commencer l'Aventure</h3>
-            <p>Démarrez directement dans le donjon et affrontez vos premiers ennemis</p>
-            <button class="btn-option" @onclick="CommencerAventure">
-                Entrer dans le donjon
-            </button>
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner">⚔️</div>
+            <p>Génération du donjon en cours...</p>
         </div>
+    }
+    else
+    {
+        <div class="adventure-options">
+            <div class="option-card primary-card">
+                <div class="option-icon">🎮</div>
+                <h3>Commencer l'Aventure</h3>
+                <p>Démarrez directement dans le donjon généré aléatoirement et affrontez vos ennemis.</p>
+                <button class="btn-option" @onclick="CommencerAventure">
+                    Entrer dans le donjon
+                </button>
+            </div>
 
-        <!-- Option 2 : Voir le tutoriel -->
-        <div class="option-card">
-            <div class="option-icon">📚</div>
-            <h3>Guide du Débutant</h3>
-            <p>Apprenez les bases du combat et de l'exploration</p>
-            <button class="btn-option btn-secondary" @onclick="VoirTutoriel">
-                Voir le tutoriel
-            </button>
+            <div class="option-card">
+                <div class="option-icon">📚</div>
+                <h3>Guide du Débutant</h3>
+                <p>Apprenez les règles du combat, les risques de la fuite et les gains de l'exploration.</p>
+                <button class="btn-option btn-secondary" @onclick="VoirTutoriel">
+                    Lire les Règles
+                </button>
+            </div>
+
+            <div class="option-card">
+                <div class="option-icon">⚙️</div>
+                <h3>Paramètres</h3>
+                <p>Configurez les options de jeu et la difficulté.</p>
+                <button class="btn-option btn-secondary" @onclick="OuvrirParametres">
+                    Ouvrir les paramètres
+                </button>
+            </div>
         </div>
+    }
 
-        <!-- Option 3 : Paramètres -->
-        <div class="option-card">
-            <div class="option-icon">⚙️</div>
-            <h3>Paramètres</h3>
-            <p>Configurez les options de jeu et la difficulté</p>
-            <button class="btn-option btn-secondary" @onclick="OuvrirParametres">
-                Ouvrir les paramètres
-            </button>
-        </div>
-    </div>
-
-    <!-- Message de statut -->
     @if (!string.IsNullOrEmpty(MessageStatut))
     {
         <div class="status-message">
@@ -52,38 +61,66 @@
 
 @code {
     private string MessageStatut = "";
+    private bool isLoading = false;
 
-    private void CommencerAventure()
+    private async Task CommencerAventure()
     {
-        // Redirige vers la page Salle.razor qui est dans le dossier Components
-        Navigation.NavigateTo("/salle");
+        isLoading = true;
+        MessageStatut = "";
+
+        try
+        {
+            // On utilise un ID de joueur fixe pour l'exemple (ou généré aléatoirement)
+            var joueurId = Guid.NewGuid(); 
+
+            // Appel à l'API pour créer la partie et générer les salles
+            var response = await Http.PostAsync($"api/Partie/demarrer?joueurId={joueurId}", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var partie = await response.Content.ReadFromJsonAsync<Partie>();
+                if (partie != null)
+                {
+                    // Redirection vers la page de la salle avec l'ID de la partie créée
+                    Navigation.NavigateTo($"/salle/{partie.Id}");
+                }
+            }
+            else
+            {
+                MessageStatut = "Erreur lors de la création du donjon. Veuillez réessayer.";
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageStatut = $"Erreur de connexion : {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private void VoirTutoriel()
     {
-        MessageStatut = "#################################################";
+        // Redirection vers la page Regles.razor
+        Navigation.NavigateTo("/regles");
     }
 
     private void OuvrirParametres()
     {
         MessageStatut = "⚙️ Les paramètres seront disponibles dans une future mise à jour.";
     }
-
-    private void RetourAccueil()
-    {
-        Navigation.NavigateTo("/");
-    }
 }
 
 <style>
     .simple-adventure-page {
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
         padding: 2rem;
         min-height: 80vh;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        align-items: center;
     }
 
     .adventure-header {
@@ -93,62 +130,75 @@
 
     .adventure-header h1 {
         color: #ffd700;
-        font-size: 2.5rem;
+        font-size: 3rem;
         margin-bottom: 1rem;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        font-family: 'MedievalSharp', cursive;
     }
 
     .adventure-header p {
         color: #e0d0b0;
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         margin: 0;
     }
 
     .adventure-options {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 2rem;
+        width: 100%;
         margin-bottom: 2rem;
     }
 
     .option-card {
-        background: 
-            linear-gradient(rgba(40, 25, 15, 0.8), rgba(30, 15, 5, 0.8));
-        background-size: cover;
+        background: linear-gradient(rgba(40, 25, 15, 0.9), rgba(30, 15, 5, 0.95));
         padding: 2rem;
         border-radius: 15px;
-        border: 2px solid #8b4513;
+        border: 1px solid #8b4513;
         text-align: center;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
         transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    /* Mise en valeur de la carte principale */
+    .primary-card {
+        border: 2px solid #d4af37;
+        transform: scale(1.02);
+        background: linear-gradient(rgba(60, 40, 20, 0.9), rgba(40, 20, 10, 0.95));
     }
 
     .option-card:hover {
-        transform: translateY(-5px);
-        border-color: #d4af37;
-        box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
+        transform: translateY(-5px) scale(1.03);
+        border-color: #ffd700;
+        box-shadow: 0 10px 25px rgba(212, 175, 55, 0.2);
     }
 
     .option-icon {
-        font-size: 3rem;
+        font-size: 3.5rem;
         margin-bottom: 1rem;
+        display: block;
     }
 
     .option-card h3 {
         color: #ffd700;
         margin-bottom: 1rem;
-        font-size: 1.4rem;
+        font-size: 1.5rem;
+        font-family: 'MedievalSharp', cursive;
     }
 
     .option-card p {
         color: #e0d0b0;
-        margin-bottom: 1.5rem;
-        line-height: 1.5;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+        font-size: 1rem;
     }
 
     .btn-option {
         width: 100%;
-        padding: 1rem 2rem;
+        padding: 0.8rem 1.5rem;
         background: linear-gradient(135deg, #d4af37, #b8860b);
         color: #1a0f0f;
         border: none;
@@ -157,13 +207,15 @@
         cursor: pointer;
         transition: all 0.3s ease;
         font-family: 'MedievalSharp', cursive;
-        font-size: 1rem;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
     .btn-option:hover {
-        background: linear-gradient(135deg, #b8860b, #d4af37);
+        background: linear-gradient(135deg, #ffd700, #d4af37);
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
     }
 
     .btn-secondary {
@@ -174,32 +226,47 @@
 
     .btn-secondary:hover {
         background: rgba(212, 175, 55, 0.1);
-        color: #ffd700;
+        color: #fff;
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
     }
 
     .status-message {
-        background: rgba(212, 175, 55, 0.2);
-        border: 1px solid #d4af37;
-        color: #ffd700;
-        padding: 1rem;
+        background: rgba(220, 38, 38, 0.2);
+        border: 1px solid #ef4444;
+        color: #fca5a5;
+        padding: 1rem 2rem;
         border-radius: 8px;
         text-align: center;
         margin-top: 2rem;
         font-weight: bold;
+        animation: fadeIn 0.5s ease-in;
     }
 
-    /* Responsive */
+    /* Animation de chargement */
+    .loading-container {
+        text-align: center;
+        margin: 3rem 0;
+    }
+
+    .spinner {
+        font-size: 4rem;
+        display: inline-block;
+        animation: spin 2s infinite linear;
+        margin-bottom: 1rem;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
     @@media (max-width: 768px) {
-        .simple-adventure-page {
-            padding: 1rem;
-        }
-
-        .adventure-header h1 {
-            font-size: 2rem;
-        }
-
-        .adventure-options {
-            grid-template-columns: 1fr;
-        }
+        .adventure-header h1 { font-size: 2rem; }
+        .adventure-options { grid-template-columns: 1fr; }
     }
 </style>
