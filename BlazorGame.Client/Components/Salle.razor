@@ -93,10 +93,7 @@ else
     public Guid PartieId { get; set; }
 
     private Models.Salle? currentSalle;
-    private Salle? currentSalle;
     private string messageResultat = "Initialisation...";
-    private bool actionFaite => currentSalle?.ChoixFait.HasValue ?? false;
-
     private bool actionFaite => currentSalle?.ChoixFait.HasValue ?? false;
     protected override async Task OnInitializedAsync()
     {
