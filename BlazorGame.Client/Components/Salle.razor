@@ -1,48 +1,182 @@
-@page "/salle"
-<div class="dungeon-room">
-    <div class="room-header">
-        <h3>###############</h3>
-        <div class="room-difficulty">
-            <span class="difficulty-badge difficulty-medium">Difficulté: #############</span>
+@page "/salle/{PartieId:guid}"
+@using Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using System.Net.Http.Json
+
+@if (currentSalle == null)
+{
+    <div class="loading-screen">
+        <h3>Chargement de la salle...</h3>
+        <p>@messageResultat</p>
+    </div>
+}
+else
+{
+    <div class="dungeon-room">
+        <div class="room-header">
+            <h3>Salle @currentSalle.Position - Le Donjon</h3>
+            <div class="room-difficulty">
+                <span class="difficulty-badge difficulty-@currentSalle.Niveau.ToString().ToLower()">
+                    Difficulté: @currentSalle.Niveau
+                </span>
+            </div>
+        </div>
+        
+        <div class="room-description">
+            <p>@currentSalle.Description</p>
+            @if (currentSalle.Resultat != null)
+            {
+                <p class="result-message">*Résultat:* @currentSalle.Resultat.Message</p>
+            }
+        </div>
+        
+        <div class="enemy-display">
+            <img src="images/@(currentSalle.ImageMonstre ?? "default.png")" 
+                alt="@currentSalle.NomMonstre" class="enemy-image" />
+            <div class="enemy-stats">
+                <span>Ennemi : @currentSalle.NomMonstre</span>
+                <span>PV : @currentSalle.PvMonstre</span>
+                <span>Force: @currentSalle.ForceMonstre</span>
+            </div>
+        </div>
+        
+        <div class="action-choices">
+            <h4>Que choisissez-vous ?</h4>
+            
+            @if (actionFaite)
+            {
+                <div class="action-buttons">
+                    <button class="btn-action btn-next" @onclick="SalleSuivante">
+                        @if (currentSalle.Position >= 5)
+                        {
+                            <span>Finir l'Aventure !</span>
+                        }
+                        else
+                        {
+                            <span>Salle Suivante >></span>
+                        }
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="action-buttons">
+                    <button class="btn-action btn-combat" disabled="@actionFaite" @onclick="@(() => ExecuterAction(ChoixAction.Combattre))">
+                        Combattre
+                    </button>
+                    <button class="btn-action btn-flee" disabled="@actionFaite" @onclick="@(() => ExecuterAction(ChoixAction.Fuir))">
+                        Fuir
+                    </button>
+                    <button class="btn-action btn-search" disabled="@actionFaite" @onclick="@(() => ExecuterAction(ChoixAction.Fouiller))">
+                        Fouiller
+                    </button>
+                </div>
+            }
+        </div>
+        
+        <div class="room-progress">
+            @{
+                double progress = currentSalle.Position / 5.0 * 100;
+            }
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: @progress%"></div>
+            </div>
+            <span>Progression: @currentSalle.Position / 5 salles</span>
         </div>
     </div>
-    
-    <div class="room-description">
-        <p>#################################################### 
-        ####################################################</p>
-    </div>
-    
-    <div class="enemy-display">
-        <img src="images/XXXX" alt="enemie_image" class="enemy-image" />
-        <div class="enemy-stats">
-            <span>Enemie : ###########</span>
-            <span>PV : XX/XX</span>
-            <span>Force: XX</span>
-        </div>
-    </div>
-    
-    <div class="action-choices">
-        <h4>Que choisissez-vous ?</h4>
-        <div class="action-buttons">
-            <button class="btn-action btn-combat">
-                Combattre
-            </button>
-            <button class="btn-action btn-flee">
-                Fuir
-            </button>
-            <button class="btn-action btn-search">
-                Fouiller
-            </button>
-        </div>
-    </div>
-    
-    <div class="room-progress">
-        <div class="progress-bar">
-            <div class="progress-fill" style="width: 60%"></div>
-        </div>
-        <span>Progression: XX/XX salles</span>
-    </div>
-</div>
+}
+
+@code {
+    // Récupère l'ID de la partie depuis l'URL
+    [Parameter]
+    public Guid PartieId { get; set; }
+
+    private Models.Salle? currentSalle;
+    private Salle? currentSalle;
+    private string messageResultat = "Initialisation...";
+    private bool actionFaite => currentSalle?.ChoixFait.HasValue ?? false;
+
+    private bool actionFaite => currentSalle?.ChoixFait.HasValue ?? false;
+    protected override async Task OnInitializedAsync()
+    {
+        await ChargerSalleActuelle();
+    }
+
+    private async Task ChargerSalleActuelle()
+    {
+        currentSalle = null;
+        messageResultat = "Chargement de la partie et recherche de la salle actuelle...";
+        
+        try
+        {
+            var partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{PartieId}");
+
+            if (partie == null)
+            {
+                messageResultat = "Erreur: Partie introuvable ou API non disponible.";
+                return;
+            }
+            
+            currentSalle = partie.Salles
+                .OrderBy(s => s.Position)
+                .FirstOrDefault(s => s.EstVisitee == false);
+
+            if (currentSalle == null)
+            {
+                // Si aucune salle non visitée, la partie est terminée ou bug
+                messageResultat = "Félicitations ! L'aventure est terminée.";
+                if (partie.EstTerminee)
+                {
+                    Navigation.NavigateTo($"/score/{PartieId}");
+                }
+            }
+            else if (actionFaite)
+            {
+                // La salle actuelle a déjà été jouée (si on revient dessus)
+                messageResultat = "Cette salle a déjà été résolue.";
+            }
+            else
+            {
+                messageResultat = string.Empty; // Cache le message si tout va bien
+            }
+        }
+        catch (Exception ex)
+        {
+            messageResultat = $"Erreur de connexion à l'API: {ex.Message}";
+        }
+    }
+
+    private async Task ExecuterAction(ChoixAction action)
+    {
+        if (actionFaite || currentSalle == null) return;
+
+        try
+        {
+            var response = await Http.PatchAsJsonAsync($"api/Salle/{currentSalle.Id}/action", action);
+            response.EnsureSuccessStatusCode();
+
+            // L'API renvoie le résultat de l'action
+            currentSalle.Resultat = await response.Content.ReadFromJsonAsync<ActionResultat>();
+            
+            // La salle est marquée comme visitée et le score mis à jour par l'API.
+            currentSalle.ChoixFait = action;
+            
+            // Forcer le rafraîchissement de l'UI pour afficher le résultat et le bouton "Suivant"
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            messageResultat = $"Erreur lors de l'exécution de l'action: {ex.Message}";
+        }
+    }
+
+    private void SalleSuivante()
+    {
+        // Rediriger vers la même page pour forcer le OnInitializedAsync à charger la salle suivante
+        Navigation.NavigateTo($"/salle/{PartieId}", forceLoad: true);
+    }
+}
 
 <style>
     .room-header {
@@ -67,9 +201,19 @@
         font-size: 0.9rem;
     }
 
-    .difficulty-medium {
+    .difficulty-facile {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+    
+    .difficulty-moyen {
         background: linear-gradient(135deg, #d4af37, #b8860b);
         color: #1a0f0f;
+    }
+    
+    .difficulty-difficile {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        color: white;
     }
 
     .room-description {
@@ -78,6 +222,11 @@
         margin-bottom: 2rem;
         text-align: center;
         font-style: italic;
+    }
+    .result-message {
+        font-weight: bold;
+        color: #38a169; /* Un vert pour le succès ou info */
+        margin-top: 1rem;
     }
 
     .enemy-display {
@@ -123,6 +272,12 @@
         justify-content: center;
         flex-wrap: wrap;
     }
+    
+    .btn-next {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border: 2px solid #1d4ed8;
+    }
 
     .btn-action {
         padding: 1rem 2rem;
@@ -143,7 +298,7 @@
         border: 2px solid #8b0000;
     }
 
-    .btn-combat:hover {
+    .btn-combat:hover:not(:disabled) {
         background: linear-gradient(135deg, #c82333, #a71e2a);
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
@@ -155,7 +310,7 @@
         border: 2px solid #b8860b;
     }
 
-    .btn-flee:hover {
+    .btn-flee:hover:not(:disabled) {
         background: linear-gradient(135deg, #e0a800, #d39e00);
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
@@ -167,11 +322,19 @@
         border: 2px solid #155724;
     }
 
-    .btn-search:hover {
+    .btn-search:hover:not(:disabled) {
         background: linear-gradient(135deg, #218838, #1e7e34);
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
     }
+    
+    /* Style pour les boutons désactivés */
+    .btn-action:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
 
     .room-progress {
         margin-top: 2rem;
