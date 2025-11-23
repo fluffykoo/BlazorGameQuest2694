@@ -10,6 +10,7 @@ namespace AuthenticationServices.Controllers
     public class SalleController : ControllerBase
     {
         private readonly AventureDbContext _context;
+        private readonly Random _random = new();
 
         public SalleController(AventureDbContext context)
         {
@@ -25,7 +26,7 @@ namespace AuthenticationServices.Controllers
                 .ToListAsync();
         }
 
-        // GET: api/Salle/5
+        // GET: api/Salle/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<Salle>> GetSalle(Guid id)
         {
@@ -34,9 +35,7 @@ namespace AuthenticationServices.Controllers
                 .FirstOrDefaultAsync(s => s.Id == id);
 
             if (salle == null)
-            {
                 return NotFound();
-            }
 
             return salle;
         }
@@ -58,7 +57,7 @@ namespace AuthenticationServices.Controllers
             _context.Salles.Add(salle);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetSalle", new { id = salle.Id }, salle);
+            return CreatedAtAction(nameof(GetSalle), new { id = salle.Id }, salle);
         }
 
         // POST: api/Salle/batch
@@ -71,14 +70,12 @@ namespace AuthenticationServices.Controllers
             return Ok();
         }
 
-        // PUT: api/Salle/5
+        // PUT: api/Salle/{id}
         [HttpPut("{id}")]
         public async Task<IActionResult> PutSalle(Guid id, Salle salle)
         {
             if (id != salle.Id)
-            {
                 return BadRequest();
-            }
 
             _context.Entry(salle).State = EntityState.Modified;
 
@@ -89,13 +86,9 @@ namespace AuthenticationServices.Controllers
             catch (DbUpdateConcurrencyException)
             {
                 if (!SalleExists(id))
-                {
                     return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+
+                throw;
             }
 
             return NoContent();
@@ -105,19 +98,29 @@ namespace AuthenticationServices.Controllers
         [HttpPatch("{id}/action")]
         public async Task<ActionResult<ActionResultat>> ExecuterAction(Guid id, [FromBody] ChoixAction action)
         {
-            var salle = await _context.Salles.Include(s => s.Partie).FirstOrDefaultAsync(s => s.Id == id);
-            if (salle == null || salle.Partie == null) return NotFound();
+            var salle = await _context.Salles
+                .Include(s => s.Partie)
+                .ThenInclude(p => p.Salles)
+                .FirstOrDefaultAsync(s => s.Id == id);
 
-            if (salle.ChoixFait != null) return BadRequest("Action déjà effectuée dans cette salle.");
+            if (salle == null || salle.Partie == null)
+                return NotFound();
+
+            if (salle.ChoixFait != null)
+                return BadRequest("Action déjà effectuée dans cette salle.");
 
             var resultat = new ActionResultat { Action = action };
-            var random = new Random();
 
+            // ----------------------
             // Logique de jeu V3
+            // ----------------------
             switch (action)
             {
                 case ChoixAction.Combattre:
-                    bool victoire = random.Next(100) > 30; // 70% de chance
+                    // 70 % de chance de victoire
+                    resultat.Risque = 30;
+                    bool victoire = _random.Next(100) >= resultat.Risque;
+
                     if (victoire)
                     {
                         resultat.Points = 50 * (int)salle.Niveau;
@@ -128,17 +131,20 @@ namespace AuthenticationServices.Controllers
                     {
                         resultat.Points = 0;
                         resultat.Message = $"Échec... Le {salle.NomMonstre} vous a blessé.";
-                
                     }
                     break;
 
                 case ChoixAction.Fuir:
+                    resultat.Risque = 0;
                     resultat.Points = 10;
-                    resultat.Message = "Vous avez fui lâchement mais vous êtes en vie.";
+                    resultat.Message = "Vous avez fui prudemment et restez en vie.";
                     break;
 
                 case ChoixAction.Fouiller:
-                    bool tresor = random.Next(100) > 50;
+                    // 50 % de chance de trésor
+                    resultat.Risque = 50;
+                    bool tresor = _random.Next(100) >= resultat.Risque;
+
                     if (tresor)
                     {
                         resultat.Points = 30;
@@ -153,35 +159,34 @@ namespace AuthenticationServices.Controllers
                     break;
             }
 
-            // Mise à jour de l'état
+            // Mise à jour de l'état de la salle
             salle.ChoixFait = action;
             salle.Resultat = resultat;
             salle.EstVisitee = true;
-            
-            // Mise à jour du score global de la partie
+
+            // Mise à jour du score global
             salle.Partie.ScoreFinal += resultat.Points;
-            
-            // Vérifier si c'était la dernière salle (Position 5)
-            if (salle.Position >= 5)
+            resultat.ScoreTotal = salle.Partie.ScoreFinal;
+
+            // Détection de la dernière salle du donjon
+            var maxPosition = salle.Partie.Salles.Max(s => s.Position);
+            if (salle.Position >= maxPosition)
             {
                 salle.Partie.EstTerminee = true;
                 resultat.Message += " (FIN DU DONJON)";
             }
 
             await _context.SaveChangesAsync();
-
             return Ok(resultat);
         }
 
-        // DELETE: api/Salle/5
+        // DELETE: api/Salle/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSalle(Guid id)
         {
             var salle = await _context.Salles.FindAsync(id);
             if (salle == null)
-            {
                 return NotFound();
-            }
 
             _context.Salles.Remove(salle);
             await _context.SaveChangesAsync();
@@ -192,28 +197,6 @@ namespace AuthenticationServices.Controllers
         private bool SalleExists(Guid id)
         {
             return _context.Salles.Any(e => e.Id == id);
-        }
-
-        private int CalculerPoints(ChoixAction action, NiveauDifficulte difficulte)
-        {
-            // Logique de calcul des points basée sur l'action et la difficulté
-            var pointsBase = action switch
-            {
-                ChoixAction.Combattre => 10,
-                ChoixAction.Fouiller => 5,
-                ChoixAction.Fuir => 2,
-                _ => 0
-            };
-
-            var multiplicateur = difficulte switch
-            {
-                NiveauDifficulte.Facile => 1,
-                NiveauDifficulte.Moyen => 2,
-                NiveauDifficulte.Difficile => 3,
-                _ => 1
-            };
-
-            return pointsBase * multiplicateur;
         }
     }
 }

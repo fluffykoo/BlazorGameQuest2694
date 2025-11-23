@@ -22,9 +22,18 @@ public enum ChoixAction
 public class ActionResultat
 {
     public ChoixAction Action { get; set; }
+
+    // Δ de score pour cette action (peut être > 0, 0 ou < 0)
     public int Points { get; set; }
+
     public bool EstPiege { get; set; }
     public string Message { get; set; } = string.Empty;
+
+    // Pour l'affichage du style "Risque : 30%"
+    public int Risque { get; set; }
+
+    // Score global de la partie après cette action
+    public int ScoreTotal { get; set; }
 }
 
 public class Salle

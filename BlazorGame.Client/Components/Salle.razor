@@ -25,11 +25,32 @@ else
         
         <div class="room-description">
             <p>@currentSalle.Description</p>
-            @if (currentSalle.Resultat != null)
-            {
-                <p class="result-message">*Résultat:* @currentSalle.Resultat.Message</p>
-            }
         </div>
+
+        @if (currentSalle.Resultat != null)
+        {
+            var res = currentSalle.Resultat;
+
+            <div class="result-container @(res.EstPiege ? "result-danger" : "result-success")">
+                <h4>@res.Message</h4>
+
+                <div class="result-details">
+                    <p><strong>Action :</strong> @res.Action</p>
+
+                    @if (res.Points > 0)
+                    {
+                        <p class="points-won">+@res.Points pts</p>
+                    }
+                    @if (res.Points < 0)
+                    {
+                        <p class="points-lost">@res.Points pts</p>
+                    }
+
+                    <p><strong>Risque :</strong> @res.Risque %</p>
+                    <p><strong>Score total :</strong> @res.ScoreTotal pts</p>
+                </div>
+            </div>
+        }
         
         <div class="enemy-display">
             <img src="images/@(currentSalle.ImageMonstre ?? "default.png")" 
@@ -48,7 +69,7 @@ else
             {
                 <div class="action-buttons">
                     <button class="btn-action btn-next" @onclick="SalleSuivante">
-                        @if (currentSalle.Position >= 5)
+                        @if (currentSalle.Position >= totalSalles && totalSalles > 0)
                         {
                             <span>Finir l'Aventure !</span>
                         }
@@ -82,7 +103,7 @@ else
             }
         </div>
         
-      <div class="room-progress">
+        <div class="room-progress">
             @{
                 double progress = totalSalles == 0
                     ? 0
@@ -104,7 +125,6 @@ else
     private string messageResultat = "Initialisation...";
     private bool actionFaite => currentSalle?.ChoixFait.HasValue ?? false;
 
-    // nouveau champ
     private int totalSalles = 0;
 
     protected override async Task OnInitializedAsync()
@@ -127,7 +147,6 @@ else
                 return;
             }
 
-            // on récupère le nombre réel de salles
             totalSalles = partie.Salles?.Count ?? 0;
 
             currentSalle = partie.Salles
@@ -166,13 +185,9 @@ else
             var response = await Http.PatchAsJsonAsync($"api/Salle/{currentSalle.Id}/action", action);
             response.EnsureSuccessStatusCode();
 
-            // L'API renvoie le résultat de l'action
             currentSalle.Resultat = await response.Content.ReadFromJsonAsync<ActionResultat>();
-            
-            // La salle est marquée comme visitée et le score mis à jour par l'API.
             currentSalle.ChoixFait = action;
-            
-            // Forcer le rafraîchissement de l'UI pour afficher le résultat et le bouton "Suivant"
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -183,7 +198,6 @@ else
 
     private void SalleSuivante()
     {
-        // Rediriger vers la même page pour forcer OnInitializedAsync à charger la salle suivante
         Navigation.NavigateTo($"/salle/{PartieId}", forceLoad: true);
     }
 
@@ -237,12 +251,6 @@ else
         margin-bottom: 2rem;
         text-align: center;
         font-style: italic;
-    }
-
-    .result-message {
-        font-weight: bold;
-        color: #38a169;
-        margin-top: 1rem;
     }
 
     .enemy-display {
@@ -370,5 +378,44 @@ else
         background: linear-gradient(90deg, #d4af37, #ffd700);
         border-radius: 10px;
         transition: width 0.5s ease;
+    }
+
+    .result-container {
+        padding: 1.5rem;
+        margin: 1rem auto;
+        max-width: 500px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 0 10px rgba(0,0,0,0.4);
+        font-family: 'MedievalSharp', cursive;
+    }
+
+    .result-success {
+        background: rgba(40, 167, 69, 0.15);
+        border: 2px solid #28a745;
+        color: #d4ffd9;
+    }
+
+    .result-danger {
+        background: rgba(220, 53, 69, 0.15);
+        border: 2px solid #dc3545;
+        color: #ffd4d4;
+    }
+
+    .result-details p {
+        margin: 0.3rem 0;
+        font-size: 1.1rem;
+    }
+
+    .points-won {
+        color: #7CFF7C;
+        font-weight: bold;
+        font-size: 1.3rem;
+    }
+
+    .points-lost {
+        color: #FF6161;
+        font-weight: bold;
+        font-size: 1.3rem;
     }
 </style>
