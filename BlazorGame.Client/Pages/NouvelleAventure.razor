@@ -1,5 +1,6 @@
 @page "/nouvelle-aventure"
 @using Models
+@using System.Net.Http.Json
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -29,6 +30,17 @@
                 <button class="btn-option" @onclick="CommencerAventure">
                     Entrer dans le donjon
                 </button>
+                @if (donjonGenere != null)
+{
+    <h4>Donjon généré : @donjonGenere.Nom</h4>
+
+    <ul>
+        @foreach (var salle in sallesGenerees)
+        {
+            <li>Salle @salle.Position : @salle.Description</li>
+        }
+    </ul>
+}
             </div>
 
             <div class="option-card">
@@ -63,6 +75,10 @@
     private string MessageStatut = "";
     private bool isLoading = false;
 
+    // Donjon et salles générés par l'API (endpoint /api/Partie/demarrer)
+    private Donjon? donjonGenere;
+    private List<Salle> sallesGenerees = new();
+
     private async Task CommencerAventure()
     {
         isLoading = true;
@@ -70,19 +86,35 @@
 
         try
         {
-            // On utilise un ID de joueur fixe pour l'exemple (ou généré aléatoirement)
-            var joueurId = Guid.NewGuid(); 
+            //On utilise l'id d'un joueur deja présent dans notre base de donnée 
+            // Dans la prochaine version avec authentification, on récupérera l'Id du joueur connecté.
+            // var joueurId = Guid.NewGuid();
+            var joueurId = Guid.Parse("3f9f8a76-d7e9-4642-a3f4-efb0604eab40");
 
-            // Appel à l'API pour créer la partie et générer les salles
-            var response = await Http.PostAsync($"api/Partie/demarrer?joueurId={joueurId}", null);
+            // Appel du endpoint backend  POST /api/Partie/demarrer?joueurId={joueurId} qui :
+            //    - crée un Donjon
+            //    - crée une Partie liée au joueur et au Donjon
+            //    - génère les Salles du Donjon
+            var response = await Http.PostAsync($"api/Partie/demarrer?joueurId={joueurId}", content: null);
 
             if (response.IsSuccessStatusCode)
             {
+                // On récupère l'objet Partie complet renvoyé par l'API
+                //    (avec navigation properties Donjon et Salles déjà chargées)
                 var partie = await response.Content.ReadFromJsonAsync<Partie>();
+
                 if (partie != null)
                 {
-                    // Redirection vers la page de la salle avec l'ID de la partie créée
+                    // enregistrement du donjon et de ses salles pour les afficher sur la page
+                    donjonGenere = partie.Donjon;
+                    sallesGenerees = partie.Salles ?? new List<Salle>();
+
+                    // rediriger directement vers la première salle de la partie
                     Navigation.NavigateTo($"/salle/{partie.Id}");
+                }
+                else
+                {
+                    MessageStatut = "La partie générée est vide. Vérifiez la réponse de l'API.";
                 }
             }
             else
@@ -92,6 +124,7 @@
         }
         catch (Exception ex)
         {
+            // Gestion d'erreur réseau / backend
             MessageStatut = $"Erreur de connexion : {ex.Message}";
         }
         finally

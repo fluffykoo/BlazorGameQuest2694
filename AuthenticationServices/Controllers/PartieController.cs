@@ -17,44 +17,71 @@ namespace AuthenticationServices.Controllers
             _context = context;
         }
 
-        // POST: api/Partie/demarrer
-        // Amélioration V3 : Génération procédurale du donjon au démarrage
+        // POST: api/Partie/demarrer?joueurId=xxxxx
+        // Génère :
+        //  - un Donjon
+        //  - une Partie liée au Joueur + Donjon
+        //  - des Salles procédurales liées Partie + Donjon
         [HttpPost("demarrer")]
         public async Task<ActionResult<Partie>> DemarrerPartie([FromQuery] Guid joueurId)
         {
-            // 1. Création de la partie
+            // 1. Vérifier que le joueur existe
+            var joueur = await _context.Joueurs.FindAsync(joueurId);
+            if (joueur == null)
+            {
+                return BadRequest("Le joueur spécifié n'existe pas.");
+            }
+
+            // 2. Créer un donjon aléatoire
+            var donjon = new Donjon
+            {
+                Nom = "Donjon Mystérieux",
+                Description = "Généré automatiquement",
+                NombreDeSalles = 5
+            };
+            _context.Donjons.Add(donjon);
+            await _context.SaveChangesAsync();
+
+            // 3. Créer la partie (on force l’Id pour référencer depuis les salles)
+            var partieId = Guid.NewGuid();
             var partie = new Partie
             {
-                Id = Guid.NewGuid(),
+                Id = partieId,
                 JoueurId = joueurId,
+                DonjonId = donjon.Id,
                 Date = DateTime.UtcNow,
                 ScoreFinal = 0,
                 EstTerminee = false,
-                Salles = new List<Salle>() // On va remplir ça tout de suite
+                Salles = new List<Salle>()
             };
 
-            // 2. Génération de 5 salles aléatoires
-            for (int i = 0; i < 5; i++)
+            // 4. Générer les salles p
+            for (int position = 1; position <= donjon.NombreDeSalles; position++)
             {
-                partie.Salles.Add(GenererSalleAleatoire(partie.Id, i + 1));
+                partie.Salles.Add(GenererSalleAleatoire(partieId, donjon.Id, position));
             }
 
             _context.Parties.Add(partie);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetPartie", new { id = partie.Id }, partie);
+            // 5. Charger les relations avant de renvoyer au front
+            await _context.Entry(partie).Reference(p => p.Donjon).LoadAsync();
+            await _context.Entry(partie).Collection(p => p.Salles).LoadAsync();
+
+            // On renvoie la partie complète (utilisée par ton front Blazor)
+            return Ok(partie);
         }
 
-        // Méthode utilitaire privée pour la génération procédurale
-        private Salle GenererSalleAleatoire(Guid partieId, int position)
+        // Méthode utilitaire privée pour la génération d'une salle
+        private Salle GenererSalleAleatoire(Guid partieId, Guid donjonId, int position)
         {
             var typesMonstres = new[] { "Gobelin", "Orc", "Squelette", "Dragonnet" };
             var images = new[] { "goblin.png", "orc.png", "skeleton.png", "dragon.png" };
-            
+
             int index = _random.Next(typesMonstres.Length);
-            
-            // La difficulté augmente avec la position (Salle 5 est plus dure)
-            var difficulte = position switch {
+
+            var difficulte = position switch
+            {
                 1 => NiveauDifficulte.Facile,
                 2 => NiveauDifficulte.Facile,
                 3 => NiveauDifficulte.Moyen,
@@ -66,34 +93,40 @@ namespace AuthenticationServices.Controllers
             return new Salle
             {
                 Id = Guid.NewGuid(),
-                PartieId = partieId,
+                PartieId = partieId,    // FK vers Partie
+                DonjonId = donjonId,    // FK vers Donjon
                 Position = position,
                 EstVisitee = false,
                 NomMonstre = typesMonstres[index],
                 ImageMonstre = images[index],
-                PvMonstre = 10 * position, // PV croissants
+                PvMonstre = 10 * position,
                 ForceMonstre = 2 * position,
                 Niveau = difficulte,
-                Description = $"Une salle sombre numéro {position}. Un {typesMonstres[index]} vous regarde."
+                Description = $"Salle {position} : un {typesMonstres[index]} vous attend...",
+                ChoixPossible = new List<ChoixAction>
+                {
+                    ChoixAction.Combattre,
+                    ChoixAction.Fouiller,
+                    ChoixAction.Fuir
+                }
             };
         }
 
-        // GET: api/Partie/{id} (Reste inchangé mais inclut les salles triées)
+        // GET: api/Partie/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<Partie>> GetPartie(Guid id)
         {
             var partie = await _context.Parties
                 .Include(p => p.Joueur)
-                .Include(p => p.Salles) // Important pour le front
+                .Include(p => p.Donjon)
+                .Include(p => p.Salles)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (partie == null) return NotFound();
-            
-            // On s'assure que les salles sont dans l'ordre
-            partie.Salles = partie.Salles.OrderBy(s => s.Position).ToList();
 
+            partie.Salles = partie.Salles.OrderBy(s => s.Position).ToList();
             return partie;
-        }    
+        }
 
         // GET: api/Partie
         [HttpGet]
@@ -101,6 +134,7 @@ namespace AuthenticationServices.Controllers
         {
             return await _context.Parties
                 .Include(p => p.Joueur)
+                .Include(p => p.Donjon)
                 .Include(p => p.Salles)
                 .ToListAsync();
         }
@@ -126,14 +160,11 @@ namespace AuthenticationServices.Controllers
             return CreatedAtAction("GetPartie", new { id = partie.Id }, partie);
         }
 
-        // PUT: api/Partie/5
+        // PUT: api/Partie/{id}
         [HttpPut("{id}")]
         public async Task<IActionResult> PutPartie(Guid id, Partie partie)
         {
-            if (id != partie.Id)
-            {
-                return BadRequest();
-            }
+            if (id != partie.Id) return BadRequest();
 
             _context.Entry(partie).State = EntityState.Modified;
 
@@ -143,28 +174,19 @@ namespace AuthenticationServices.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!PartieExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (!PartieExists(id)) return NotFound();
+                throw;
             }
 
             return NoContent();
         }
 
-        // DELETE: api/Partie/5
+        // DELETE: api/Partie/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePartie(Guid id)
         {
             var partie = await _context.Parties.FindAsync(id);
-            if (partie == null)
-            {
-                return NotFound();
-            }
+            if (partie == null) return NotFound();
 
             _context.Parties.Remove(partie);
             await _context.SaveChangesAsync();
@@ -172,21 +194,17 @@ namespace AuthenticationServices.Controllers
             return NoContent();
         }
 
-        // PATCH: api/Partie/5/terminer
+        // PATCH: api/Partie/{id}/terminer
         [HttpPatch("{id}/terminer")]
         public async Task<IActionResult> TerminerPartie(Guid id, [FromBody] int scoreFinal)
         {
             var partie = await _context.Parties.FindAsync(id);
-            if (partie == null)
-            {
-                return NotFound();
-            }
+            if (partie == null) return NotFound();
 
             partie.EstTerminee = true;
             partie.ScoreFinal = scoreFinal;
 
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
