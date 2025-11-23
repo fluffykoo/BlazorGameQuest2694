@@ -1,0 +1,49 @@
+@page "/donjon/{partieId:guid}"
+@using Models
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h1>@donjon?.Nom</h1>
+<p>@donjon?.Description</p>
+
+@if (salles == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <h3>Salles : @salles.Count</h3>
+    <ul>
+        @foreach (var s in salles.OrderBy(s => s.Position))
+        {
+            <li>Salle @s.Position – @s.Description (@s.Niveau)</li>
+        }
+    </ul>
+
+    <button @onclick="EntrerSalle1">Entrer dans la première salle</button>
+}
+
+@code {
+    [Parameter] public Guid partieId { get; set; }
+
+    Models.Donjon? donjon;
+    List<Salle>? salles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{partieId}");
+
+        if (partie != null)
+        {
+            donjon = partie.Donjon;
+            salles = partie.Salles;
+        }
+    }
+
+   private void EntrerSalle1()
+{
+    // On envoie l'id de la partie, la page Salle se charge de trouver la première salle à jouer
+    Navigation.NavigateTo($"/salle/{partieId}");
+}
+}

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using AuthenticationServices.Data;
+using AuthenticationServices.GameConfig;
 
 namespace AuthenticationServices.Controllers
 {
@@ -10,7 +11,8 @@ namespace AuthenticationServices.Controllers
     public class PartieController : ControllerBase
     {
         private readonly AventureDbContext _context;
-        private readonly Random _random = new Random();
+        private readonly Random _random = new();
+        private readonly IReadOnlyList<DonjonTemplate> _donjonTemplates = DonjonTemplates.All;
 
         public PartieController(AventureDbContext context)
         {
@@ -31,7 +33,7 @@ namespace AuthenticationServices.Controllers
             {
                 return BadRequest("Le joueur spécifié n'existe pas.");
             }
-
+/*
             // 2. Créer un donjon aléatoire
             var donjon = new Donjon
             {
@@ -40,9 +42,25 @@ namespace AuthenticationServices.Controllers
                 NombreDeSalles = 5
             };
             _context.Donjons.Add(donjon);
+            await _context.SaveChangesAsync();*/
+            // 2. Choisir un template de donjon aléatoirement
+            var template = _donjonTemplates[_random.Next(_donjonTemplates.Count)];
+
+            // Nombre de salles aléatoire dans l’intervalle du template
+            var nbSalles = _random.Next(template.MinSalles, template.MaxSalles + 1);
+
+            // 3. Créer le donjon basé sur le template
+            var donjon = new Donjon
+            {
+                Nom = template.Nom,
+                Description = template.Description,
+                NombreDeSalles = nbSalles
+            };
+
+            _context.Donjons.Add(donjon);
             await _context.SaveChangesAsync();
 
-            // 3. Créer la partie (on force l’Id pour référencer depuis les salles)
+            // 4. Créer la partie (on force l’Id pour référencer depuis les salles)
             var partieId = Guid.NewGuid();
             var partie = new Partie
             {

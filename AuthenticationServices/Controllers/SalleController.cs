@@ -128,7 +128,7 @@ namespace AuthenticationServices.Controllers
                     {
                         resultat.Points = 0;
                         resultat.Message = $"Échec... Le {salle.NomMonstre} vous a blessé.";
-                        // Perte de PV (Simulée ici, idéalement ajouter un champ PV sur Joueur ou Partie)
+                
                     }
                     break;
 
