@@ -33,7 +33,7 @@ else
         
         <div class="enemy-display">
             <img src="images/@(currentSalle.ImageMonstre ?? "default.png")" 
-                alt="@currentSalle.NomMonstre" class="enemy-image" />
+                 alt="@currentSalle.NomMonstre" class="enemy-image" />
             <div class="enemy-stats">
                 <span>Ennemi : @currentSalle.NomMonstre</span>
                 <span>PV : @currentSalle.PvMonstre</span>
@@ -54,47 +54,59 @@ else
                         }
                         else
                         {
-                            <span>Salle Suivante >></span>
+                            <span>Salle suivante >></span>
                         }
+                    </button>
+
+                    <button class="btn-action btn-flee" @onclick="RetourAuDonjon">
+                        Revenir au donjon
                     </button>
                 </div>
             }
             else
             {
                 <div class="action-buttons">
-                    <button class="btn-action btn-combat" disabled="@actionFaite" @onclick="@(() => ExecuterAction(ChoixAction.Combattre))">
+                    <button class="btn-action btn-combat" disabled="@actionFaite"
+                            @onclick="@(() => ExecuterAction(ChoixAction.Combattre))">
                         Combattre
                     </button>
-                    <button class="btn-action btn-flee" disabled="@actionFaite" @onclick="@(() => ExecuterAction(ChoixAction.Fuir))">
+                    <button class="btn-action btn-flee" disabled="@actionFaite"
+                            @onclick="@(() => ExecuterAction(ChoixAction.Fuir))">
                         Fuir
                     </button>
-                    <button class="btn-action btn-search" disabled="@actionFaite" @onclick="@(() => ExecuterAction(ChoixAction.Fouiller))">
+                    <button class="btn-action btn-search" disabled="@actionFaite"
+                            @onclick="@(() => ExecuterAction(ChoixAction.Fouiller))">
                         Fouiller
                     </button>
                 </div>
             }
         </div>
         
-        <div class="room-progress">
+      <div class="room-progress">
             @{
-                double progress = currentSalle.Position / 5.0 * 100;
+                double progress = totalSalles == 0
+                    ? 0
+                    : currentSalle.Position / (double)totalSalles * 100;
             }
             <div class="progress-bar">
                 <div class="progress-fill" style="width: @progress%"></div>
             </div>
-            <span>Progression: @currentSalle.Position / 5 salles</span>
+            <span>Progression: @currentSalle.Position / @totalSalles salles</span>
         </div>
     </div>
 }
 
 @code {
-    // Récupère l'ID de la partie depuis l'URL
     [Parameter]
     public Guid PartieId { get; set; }
 
     private Models.Salle? currentSalle;
     private string messageResultat = "Initialisation...";
     private bool actionFaite => currentSalle?.ChoixFait.HasValue ?? false;
+
+    // nouveau champ
+    private int totalSalles = 0;
+
     protected override async Task OnInitializedAsync()
     {
         await ChargerSalleActuelle();
@@ -104,7 +116,7 @@ else
     {
         currentSalle = null;
         messageResultat = "Chargement de la partie et recherche de la salle actuelle...";
-        
+
         try
         {
             var partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{PartieId}");
@@ -114,14 +126,16 @@ else
                 messageResultat = "Erreur: Partie introuvable ou API non disponible.";
                 return;
             }
-            
+
+            // on récupère le nombre réel de salles
+            totalSalles = partie.Salles?.Count ?? 0;
+
             currentSalle = partie.Salles
                 .OrderBy(s => s.Position)
                 .FirstOrDefault(s => s.EstVisitee == false);
 
             if (currentSalle == null)
             {
-                // Si aucune salle non visitée, la partie est terminée ou bug
                 messageResultat = "Félicitations ! L'aventure est terminée.";
                 if (partie.EstTerminee)
                 {
@@ -130,12 +144,11 @@ else
             }
             else if (actionFaite)
             {
-                // La salle actuelle a déjà été jouée (si on revient dessus)
                 messageResultat = "Cette salle a déjà été résolue.";
             }
             else
             {
-                messageResultat = string.Empty; // Cache le message si tout va bien
+                messageResultat = string.Empty;
             }
         }
         catch (Exception ex)
@@ -170,8 +183,13 @@ else
 
     private void SalleSuivante()
     {
-        // Rediriger vers la même page pour forcer le OnInitializedAsync à charger la salle suivante
+        // Rediriger vers la même page pour forcer OnInitializedAsync à charger la salle suivante
         Navigation.NavigateTo($"/salle/{PartieId}", forceLoad: true);
+    }
+
+    private void RetourAuDonjon()
+    {
+        Navigation.NavigateTo($"/donjon/{PartieId}");
     }
 }
 
@@ -220,9 +238,10 @@ else
         text-align: center;
         font-style: italic;
     }
+
     .result-message {
         font-weight: bold;
-        color: #38a169; /* Un vert pour le succès ou info */
+        color: #38a169;
         margin-top: 1rem;
     }
 
@@ -325,13 +344,11 @@ else
         box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
     }
     
-    /* Style pour les boutons désactivés */
     .btn-action:disabled {
         opacity: 0.6;
         cursor: not-allowed;
         box-shadow: none;
     }
-
 
     .room-progress {
         margin-top: 2rem;

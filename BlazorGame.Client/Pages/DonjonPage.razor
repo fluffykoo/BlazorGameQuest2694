@@ -7,43 +7,65 @@
 <h1>@donjon?.Nom</h1>
 <p>@donjon?.Description</p>
 
-@if (salles == null)
+@if (salles is null)
 {
     <p>Chargement...</p>
 }
 else
 {
-    <h3>Salles : @salles.Count</h3>
-    <ul>
-        @foreach (var s in salles.OrderBy(s => s.Position))
-        {
-            <li>Salle @s.Position – @s.Description (@s.Niveau)</li>
-        }
-    </ul>
+    <section class="dungeon-map-wrapper">
+        <h3>Plan du donjon</h3>
 
-    <button @onclick="EntrerSalle1">Entrer dans la première salle</button>
+        <div class="dungeon-map">
+            @foreach (var salle in salles.OrderBy(s => s.Position))
+            {
+                bool isUnlocked = salle.EstVisitee || salle.Position == prochaineSalle;
+                string doorImage = isUnlocked
+                    ? "images/salles/porte_ouverte.png"
+                    : "images/salles/porte_fermee.png";
+
+                <button class="room-node @(isUnlocked ? "room-unlocked" : "room-locked")"
+                        disabled="@(!isUnlocked)"
+                        @onclick="() => OuvrirSalle(salle)">
+                    
+                    <div class="room-node-inner">
+                        <img src="@doorImage" alt="Porte salle @salle.Position" class="room-icon" />
+                    </div>
+
+                    <div class="room-label">Salle @salle.Position</div>
+                    <div class="room-level">@salle.Niveau</div>
+                </button>
+            }
+        </div>
+    </section>
 }
 
 @code {
     [Parameter] public Guid partieId { get; set; }
 
-    Models.Donjon? donjon;
+    Donjon? donjon;
     List<Salle>? salles;
+    int prochaineSalle;
 
     protected override async Task OnInitializedAsync()
     {
         var partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{partieId}");
+        if (partie is null) return;
 
-        if (partie != null)
-        {
-            donjon = partie.Donjon;
-            salles = partie.Salles;
-        }
+        donjon = partie.Donjon;
+        salles = partie.Salles?.OrderBy(s => s.Position).ToList() ?? new List<Salle>();
+
+        prochaineSalle = salles
+            .Where(s => !s.EstVisitee)
+            .OrderBy(s => s.Position)
+            .Select(s => s.Position)
+            .DefaultIfEmpty(1)
+            .First();
     }
 
-   private void EntrerSalle1()
-{
-    // On envoie l'id de la partie, la page Salle se charge de trouver la première salle à jouer
-    Navigation.NavigateTo($"/salle/{partieId}");
-}
+    private void OuvrirSalle(Salle salle)
+    {
+        // Navigation vers la salle correcte
+        Navigation.NavigateTo($"/salle/{partieId}");
+    }
 }
