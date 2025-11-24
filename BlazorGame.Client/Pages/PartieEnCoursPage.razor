@@ -1,5 +1,6 @@
 @page "/partie-en-cours"
 @using Models
+@using System.Net.Http.Json
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
@@ -40,7 +41,7 @@ else
 }
 
 @code {
-    // même chose que pour l'historique, id du joueur 1
+    // Même joueur de démo que pour l’historique
     private readonly Guid joueurIdDemo = Guid.Parse("3f9f8a76-d7e9-4642-a3f4-efb0604eab40");
 
     private Partie? partieEnCours;
@@ -52,19 +53,24 @@ else
     {
         try
         {
-            var response = await Http.GetAsync($"api/Partie/joueur/{joueurIdDemo}/courante");
+            // On récupère toutes les parties du joueur
+            var parties = await Http.GetFromJsonAsync<List<Partie>>(
+                $"api/Partie/joueur/{joueurIdDemo}");
 
-            if (response.IsSuccessStatusCode)
+            if (parties is not null && parties.Any())
             {
-                partieEnCours = await response.Content.ReadFromJsonAsync<Partie>();
+                // On prend la dernière partie non terminée (EstTerminee = false)
+                partieEnCours = parties
+                    .Where(p => !p.EstTerminee)
+                    .OrderByDescending(p => p.Date)
+                    .FirstOrDefault();
 
-                nbSallesTotales = partieEnCours?.Salles?.Count ?? 0;
-                nbSallesVisitees = partieEnCours?.Salles?
-                    .Count(s => s.EstVisitee) ?? 0;
-            }
-            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                partieEnCours = null;
+                if (partieEnCours is not null)
+                {
+                    nbSallesTotales = partieEnCours.Salles?.Count ?? 0;
+                    nbSallesVisitees = partieEnCours.Salles?
+                        .Count(s => s.EstVisitee) ?? 0;
+                }
             }
         }
         finally
@@ -77,5 +83,5 @@ else
         => Navigation.NavigateTo($"/donjon/{partieId}");
 
     private void DemarrerNouvellePartie()
-        => Navigation.NavigateTo("/nouvelle-aventure"); 
+        => Navigation.NavigateTo("/nouvelle-aventure");
 }

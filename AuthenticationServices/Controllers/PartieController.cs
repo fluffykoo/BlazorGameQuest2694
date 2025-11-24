@@ -212,6 +212,23 @@ namespace AuthenticationServices.Controllers
             return NoContent();
         }
 
+        // GET: api/Partie/joueur/{id}/encours (pour sauvegarder les parties encours , non terminée )
+        [HttpGet("joueur/{joueurId}/encours")]
+        public async Task<ActionResult<Partie>> GetPartieEnCours(Guid joueurId)
+        {
+            var partie = await _context.Parties
+                .Include(p => p.Donjon)
+                .Include(p => p.Salles)
+                .Where(p => p.JoueurId == joueurId && p.EstTerminee == false)
+                .OrderByDescending(p => p.Date)
+                .FirstOrDefaultAsync();
+
+            if (partie == null)
+                return NotFound();
+
+            return partie;
+        }
+
         // PATCH: api/Partie/{id}/terminer
         [HttpPatch("{id}/terminer")]
         public async Task<IActionResult> TerminerPartie(Guid id, [FromBody] int scoreFinal)
