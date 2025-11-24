@@ -7,6 +7,30 @@
 <h1>@donjon?.Nom</h1>
 <p>@donjon?.Description</p>
 
+@if (partie is not null)
+{
+    <a class="btn btn-outline-warning"
+       href="@($"/historique/{partie.Id}")">
+        Voir l'historique de la partie
+    </a>
+}
+
+@if (scoreMax > 0)
+{
+    <section class="dungeon-score">
+        <h4>Score de la partie</h4>
+        @{
+            double progress = (double)scoreTotal / scoreMax * 100;
+            if (progress < 0) progress = 0;
+            if (progress > 100) progress = 100;
+        }
+        <div class="score-bar">
+            <div class="score-fill" style="width:@progress%"></div>
+        </div>
+        <span class="score-text">@scoreTotal pts</span>
+    </section>
+}
+
 @if (salles is null)
 {
     <p>Chargement...</p>
@@ -43,18 +67,30 @@ else
 @code {
     [Parameter] public Guid partieId { get; set; }
 
-    Donjon? donjon;
-    List<Salle>? salles;
-    int prochaineSalle;
+    private Partie? partie;
+    private Donjon? donjon;
+    private List<Salle>? salles;
+    private int prochaineSalle;
+    private int scoreTotal;
+    private int scoreMax;
 
     protected override async Task OnInitializedAsync()
     {
-        var partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{partieId}");
+        // On récupère la partie complète depuis l’API
+        partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{partieId}");
         if (partie is null) return;
 
         donjon = partie.Donjon;
         salles = partie.Salles?.OrderBy(s => s.Position).ToList() ?? new List<Salle>();
 
+        // Score actuel
+        scoreTotal = partie.ScoreFinal;
+
+        // Estimation d’un score max : 100 pts max par salle
+        var nbSalles = partie.Salles?.Count ?? 0;
+        scoreMax = nbSalles > 0 ? nbSalles * 100 : 100;
+
+        // Prochaine salle non visitée
         prochaineSalle = salles
             .Where(s => !s.EstVisitee)
             .OrderBy(s => s.Position)
@@ -65,7 +101,6 @@ else
 
     private void OuvrirSalle(Salle salle)
     {
-        // Navigation vers la salle correcte
         Navigation.NavigateTo($"/salle/{partieId}");
     }
 }

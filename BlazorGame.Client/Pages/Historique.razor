@@ -1,0 +1,99 @@
+@page "/historique/{PartieId:guid}"
+@using Models
+@inject HttpClient Http
+
+<h2>Historique de la partie</h2>
+
+@if (_isLoading)
+{
+    <p>Chargement de l’historique...</p>
+}
+else if (!string.IsNullOrEmpty(_message))
+{
+    <p>@_message</p>
+}
+else if (_partie is not null && _historique.Any())
+{
+    <section class="history-header">
+        <h3>@_partie.Donjon?.Nom</h3>
+        <p>Joueur : @_partie.Joueur?.Nom</p>
+        <p>Score final : @_partie.ScoreFinal pts</p>
+        <p>Date : @_partie.Date.ToLocalTime()</p>
+    </section>
+
+    <section class="history-list">
+        @foreach (var salle in _historique)
+        {
+            <div class="history-card">
+                <header>
+                    <strong>Salle @salle.Position (@salle.Niveau)</strong>
+                    @if (salle.EstVisitee)
+                    {
+                        <span class="badge-visitee">Visité</span>
+                    }
+                </header>
+
+                <p>@salle.Description</p>
+
+                @if (salle.Resultat is not null)
+                {
+                    <ul>
+                        <li>Action : @salle.Resultat.Action</li>
+                        <li>Risque : @salle.Resultat.Risque %</li>
+                        <li>Points : @salle.Resultat.Points</li>
+                        <li>Score total après salle : @salle.Resultat.ScoreTotal pts</li>
+                        <li>@salle.Resultat.Message</li>
+                    </ul>
+                }
+                else
+                {
+                    <p>Aucune action effectuée dans cette salle.</p>
+                }
+            </div>
+        }
+    </section>
+}
+else
+{
+    <p>Aucune salle visitée pour cette partie.</p>
+}
+
+@code {
+    [Parameter]
+    public Guid PartieId { get; set; }
+
+    private Partie? _partie;
+    private List<Salle> _historique = new();
+    private bool _isLoading = true;
+    private string? _message;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        _message = null;
+
+        try
+        {
+            _partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{PartieId}");
+
+            if (_partie is null)
+            {
+                _message = "Partie introuvable.";
+                return;
+            }
+
+            _historique = _partie.Salles
+                .Where(s => s.EstVisitee)
+                .OrderBy(s => s.Position)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _message = "Erreur lors du chargement de l’historique : " + ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

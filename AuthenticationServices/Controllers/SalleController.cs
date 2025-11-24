@@ -111,9 +111,7 @@ namespace AuthenticationServices.Controllers
 
             var resultat = new ActionResultat { Action = action };
 
-            // ----------------------
             // Logique de jeu V3
-            // ----------------------
             switch (action)
             {
                 case ChoixAction.Combattre:
@@ -169,7 +167,7 @@ namespace AuthenticationServices.Controllers
             resultat.ScoreTotal = salle.Partie.ScoreFinal;
 
             // Détection de la dernière salle du donjon
-            var maxPosition = salle.Partie.Salles.Max(s => s.Position);
+            var maxPosition = salle.Partie.Salles?.Max(s => s.Position) ?? salle.Position;
             if (salle.Position >= maxPosition)
             {
                 salle.Partie.EstTerminee = true;
@@ -196,7 +194,7 @@ namespace AuthenticationServices.Controllers
 
         private bool SalleExists(Guid id)
         {
-            return _context.Salles.Any(e => e.Id == id);
+            return _context.Salles.Any(s => s.Id == id);
         }
     }
 }

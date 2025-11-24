@@ -1,0 +1,81 @@
+@page "/partie-en-cours"
+@using Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h1>Partie en cours</h1>
+
+@if (isLoading)
+{
+    <p>Chargement...</p>
+}
+else if (partieEnCours is null)
+{
+    <div class="alert alert-info mt-3">
+        Vous n'avez pas de partie en cours.
+    </div>
+
+    <button class="btn btn-primary mt-2"
+            @onclick="DemarrerNouvellePartie">
+        Démarrer une nouvelle aventure
+    </button>
+}
+else
+{
+    <section class="mb-4">
+        <h3>@partieEnCours.Donjon?.Nom</h3>
+        <p>@partieEnCours.Donjon?.Description</p>
+
+        <p>
+            Date : @partieEnCours.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")<br />
+            Score actuel : @partieEnCours.ScoreFinal pts<br />
+            Salles : @nbSallesVisitees / @nbSallesTotales
+        </p>
+
+        <button class="btn btn-success"
+                @onclick="() => ReprendrePartie(partieEnCours.Id)">
+            Reprendre la partie
+        </button>
+    </section>
+}
+
+@code {
+    // même chose que pour l'historique, id du joueur 1
+    private readonly Guid joueurIdDemo = Guid.Parse("3f9f8a76-d7e9-4642-a3f4-efb0604eab40");
+
+    private Partie? partieEnCours;
+    private bool isLoading = true;
+    private int nbSallesTotales;
+    private int nbSallesVisitees;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/Partie/joueur/{joueurIdDemo}/courante");
+
+            if (response.IsSuccessStatusCode)
+            {
+                partieEnCours = await response.Content.ReadFromJsonAsync<Partie>();
+
+                nbSallesTotales = partieEnCours?.Salles?.Count ?? 0;
+                nbSallesVisitees = partieEnCours?.Salles?
+                    .Count(s => s.EstVisitee) ?? 0;
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                partieEnCours = null;
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ReprendrePartie(Guid partieId)
+        => Navigation.NavigateTo($"/donjon/{partieId}");
+
+    private void DemarrerNouvellePartie()
+        => Navigation.NavigateTo("/nouvelle-aventure"); 
+}
