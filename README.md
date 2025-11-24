@@ -98,7 +98,7 @@ dotnet run
 </details>
 
 ---
-<details open>
+<details>
 <summary>Version 2 – Base de données et API</summary>
 
 # Version 2 – BlazorGameQuest
@@ -287,5 +287,76 @@ Tous les endpoints CRUD ont été testés avec succès.
 Les requêtes POST créent bien des entrées visibles dans PostgreSQL (via Docker).
 
 
+---
+</details>
+---
+<details open>
+<summary>Version 3 – Mise en place de la base de données (PostgreSQL)</summary>
+
+Voici les étapes simples pour installer la base de données fournie (`aventuredb.sql`) et reproduire exactement l'environnement du projet.
+
+---
+
+## A. PostgreSQL via Docker (Windows / macOS / Linux)
+
+### 1. Lancer un conteneur PostgreSQL
+```bash
+docker run --name aventure-db \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 \
+  -d postgres
+```
+> Si le conteneur existe déjà :
+> ```bash
+> docker start aventure-db
+> ```
+
+### 2. Copier le fichier SQL dans le conteneur
+```bash
+docker cp database/aventuredb.sql aventure-db:/aventuredb.sql
+```
+
+### 3. Créer la base `AventureDB`
+```bash
+docker exec -it aventure-db \
+  psql -U postgres -c "CREATE DATABASE \"AventureDB\";"
+```
+
+### 4. Importer les données
+```bash
+docker exec -i aventure-db \
+  psql -U postgres -d AventureDB -f /aventuredb.sql
+```
+
+---
+
+## B. PostgreSQL installé localement (sans Docker)
+
+### 1. Créer la base
+```bash
+psql -U postgres -c "CREATE DATABASE \"AventureDB\";"
+```
+
+### 2. Importer le dump SQL
+```bash
+psql -h 127.0.0.1 -U postgres -d AventureDB -f database/aventuredb.sql
+```
+
+---
+
+## C. Configuration de la connexion EF Core
+Ajouter la chaîne suivante dans `Program.cs` ou `appsettings.json` :
+```csharp
+builder.Services.AddDbContext<AventureDbContext>(options =>
+    options.UseNpgsql("Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres"));
+```
+
+---
+
+## Lancement du projet
+```bash
+dotnet run --project AuthenticationServices
+dotnet run --project BlazorGame.Client
+```
 ---
 </details>
