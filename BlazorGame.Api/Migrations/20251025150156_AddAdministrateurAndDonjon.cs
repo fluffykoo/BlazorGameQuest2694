@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace AuthenticationServices.Migrations
+namespace BlazorGame.Api.Migrations
 {
     /// <inheritdoc />
     public partial class AddAdministrateurAndDonjon : Migration

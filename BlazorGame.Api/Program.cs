@@ -1,4 +1,4 @@
-using AuthenticationServices.Data;
+using BlazorGame.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 

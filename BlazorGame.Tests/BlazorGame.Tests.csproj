@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AuthenticationServices\AuthenticationServices.csproj" />
+    <ProjectReference Include="..\BlazorGame.Api\BlazorGame.Api.csproj" />
     <ProjectReference Include="..\Models\Models.csproj" />
   </ItemGroup>
 

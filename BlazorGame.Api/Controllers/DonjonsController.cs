@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using AuthenticationServices.Data;
+using BlazorGame.Api.Data;
 using Models;
 
-namespace AuthenticationServices.Controllers
+namespace BlazorGame.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

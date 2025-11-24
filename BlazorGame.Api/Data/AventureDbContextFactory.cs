@@ -1,7 +1,7 @@
 /* using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace AuthenticationServices.Data;
+namespace BlazorGame.Api.Data;
 
 public class AventureDbContextFactory : IDesignTimeDbContextFactory<AventureDbContext>
 {
@@ -17,7 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using System;
 
-namespace AuthenticationServices.Data;
+namespace BlazorGame.Api.Data;
 
 public class AventureDbContextFactory : IDesignTimeDbContextFactory<AventureDbContext>
 {

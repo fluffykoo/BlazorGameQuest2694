@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Models;
 
-namespace AuthenticationServices.Data;
+namespace BlazorGame.Api.Data;
 
 public class AventureDbContext : DbContext
 {

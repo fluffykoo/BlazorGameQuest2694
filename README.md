@@ -11,7 +11,7 @@ Un administrateur gère les joueurs et les scores via une interface dédiée.
 | Projet | Rôle |
 |--------|------|
 | **BlazorGame.Client** | Frontend Blazor WebAssembly (pages, navigation, composant Salle). |
-| **AuthenticationServices** | API et gestion de la base de données (PostgreSQL + EF Core). |
+| **BlazorGame.Api** | API et gestion de la base de données (PostgreSQL + EF Core). |
 | **Models** | Classes métiers (Joueur, Partie, Salle). |
 | **BlazorGame.Tests** | Tests unitaires (xUnit). |
 ---
@@ -158,9 +158,9 @@ Ces ajouts permettent à **Entity Framework Core** de reconnaître les relations
 ## 2. Configuration EF Core et PostgreSQL
 
 ###  Fichiers concernés
-- `/AuthenticationServices/Data/AventureDbContext.cs`  
-- `/AuthenticationServices/Data/AventureDbContextFactory.cs`  
-- `/AuthenticationServices/Program.cs`
+- `/BlazorGame.Api/Data/AventureDbContext.cs`  
+- `/BlazorGame.Api/Data/AventureDbContextFactory.cs`  
+- `/BlazorGame.Api/Program.cs`
 
 ### Étapes réalisées
 
@@ -199,11 +199,11 @@ Ces ajouts permettent à **Entity Framework Core** de reconnaître les relations
 ## 3. Création des Microservices REST
 
 ### Fichiers concernés
-- `/AuthenticationServices/Controllers/JoueursController.cs`
-- `/AuthenticationServices/Controllers/AdministrateursController.cs`
-- `/AuthenticationServices/Controllers/DonjonsController.cs`
-- `/AuthenticationServices/Controllers/PartieController.cs`
-- `/AuthenticationServices/Controllers/SalleController.cs`
+- `/BlazorGame.Api/Controllers/JoueursController.cs`
+- `/BlazorGame.Api/Controllers/AdministrateursController.cs`
+- `/BlazorGame.Api/Controllers/DonjonsController.cs`
+- `/BlazorGame.Api/Controllers/PartieController.cs`
+- `/BlazorGame.Api/Controllers/SalleController.cs`
 
 <details>
 <summary> Fonctionnalités CRUD </summary>
@@ -270,7 +270,7 @@ Ce contrôleur gère les **salles** d’un donjon ou d’une partie, en lien dir
 ## 4. Ajout et test de Swagger
 
 ### Fichier modifié
-- `/AuthenticationServices/Program.cs`
+- `/BlazorGame.Api/Program.cs`
 
 ### Code ajouté
 ```csharp
@@ -355,7 +355,7 @@ builder.Services.AddDbContext<AventureDbContext>(options =>
 
 ## Lancement du projet
 ```bash
-dotnet run --project AuthenticationServices
+dotnet run --project BlazorGame.Api
 dotnet run --project BlazorGame.Client
 ```
 ---

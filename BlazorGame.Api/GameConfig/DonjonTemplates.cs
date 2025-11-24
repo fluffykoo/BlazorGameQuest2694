@@ -1,4 +1,4 @@
-namespace AuthenticationServices.GameConfig;
+namespace BlazorGame.Api.GameConfig;
 
 // Type qui décrit un modèle de donjon
 internal record DonjonTemplate(

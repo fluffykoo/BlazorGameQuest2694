@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace AuthenticationServices.Migrations
+namespace BlazorGame.Api.Migrations
 {
     /// <inheritdoc />
     public partial class V3_ActionResultat_Extended : Migration

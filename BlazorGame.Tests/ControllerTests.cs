@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using AuthenticationServices.Controllers;
-using AuthenticationServices.Data;
+using BlazorGame.Api.Controllers;
+using BlazorGame.Api.Data;
 using Models;
 using Xunit;
 
