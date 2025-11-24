@@ -293,36 +293,59 @@ Les requêtes POST créent bien des entrées visibles dans PostgreSQL (via Docke
 <details open>
 <summary>Version 3 – Mise en place de la base de données (PostgreSQL)</summary>
 
-Voici les étapes simples pour installer la base de données fournie (`aventuredb.sql`) et reproduire exactement l'environnement du projet.
+## Structure du projet (Version 3)
+
+| Projet                | Rôle                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **BlazorGame.Client** | Frontend Blazor WebAssembly (pages, navigation, composant Salle, interface de jeu du donjon).                                   |
+| **BlazorGame.Api**    | API ASP.NET Core + EF Core, logique de jeu (génération des donjons, contrôleurs Joueur / Partie / Salle), connexion PostgreSQL. |
+| **BlazorGame.Domain** | Modèles métiers (Joueur, Partie, Salle, Donjon, ActionResultat, enums, etc.).                                                   |
+| **BlazorGame.Tests**  | Tests unitaires (xUnit + FluentAssertions, EF Core InMemory).                                                                   |
+
+**Évolutions par rapport aux versions précédentes :**
+
+- `AuthenticationServices` a été renommé et remplacé par `BlazorGame.Api` qui expose l’API REST et la logique de donjon.
+- `Models` a été renommé en `BlazorGame.Domain` et centralise les entités métiers.
+- `BlazorGame.Tests` a été enrichi avec des tests de contrôleurs (API) et des tests de modèles.
 
 ---
 
-## A. PostgreSQL via Docker (Windows / macOS / Linux)
+## Mise en place de la base de données PostgreSQL
 
-### 1. Lancer un conteneur PostgreSQL
+Le projet V3 utilise une base PostgreSQL `AventureDB` initialisée à partir du fichier `database/aventuredb.sql`.
+
+### A. PostgreSQL via Docker (Windows / macOS / Linux)
+
+1. Lancer un conteneur PostgreSQL :
+
 ```bash
 docker run --name aventure-db \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 \
   -d postgres
 ```
-> Si le conteneur existe déjà :
-> ```bash
-> docker start aventure-db
-> ```
 
-### 2. Copier le fichier SQL dans le conteneur
+Si le conteneur existe déjà :
+
+```bash
+docker start aventure-db
+```
+
+2. Copier le fichier SQL dans le conteneur :
+
 ```bash
 docker cp database/aventuredb.sql aventure-db:/aventuredb.sql
 ```
 
-### 3. Créer la base `AventureDB`
+3. Créer la base `AventureDB` :
+
 ```bash
 docker exec -it aventure-db \
   psql -U postgres -c "CREATE DATABASE \"AventureDB\";"
 ```
 
-### 4. Importer les données
+4. Importer les données :
+
 ```bash
 docker exec -i aventure-db \
   psql -U postgres -d AventureDB -f /aventuredb.sql
@@ -330,33 +353,101 @@ docker exec -i aventure-db \
 
 ---
 
-## B. PostgreSQL installé localement (sans Docker)
+### B. PostgreSQL installé localement (sans Docker)
 
-### 1. Créer la base
+1. Créer la base :
+
 ```bash
 psql -U postgres -c "CREATE DATABASE \"AventureDB\";"
 ```
 
-### 2. Importer le dump SQL
+2. Importer le dump SQL :
+
 ```bash
 psql -h 127.0.0.1 -U postgres -d AventureDB -f database/aventuredb.sql
 ```
 
 ---
 
-## C. Configuration de la connexion EF Core
-Ajouter la chaîne suivante dans `Program.cs` ou `appsettings.json` :
+### C. Configuration de la connexion EF Core
+
+Dans `Program.cs` ou `appsettings.json`, utiliser la chaîne de connexion suivante :
+
 ```csharp
 builder.Services.AddDbContext<AventureDbContext>(options =>
     options.UseNpgsql("Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres"));
 ```
 
+> Adapter le mot de passe/port si nécessaire.
+
+---
+
+## Fonctionnalités de la Version 3
+
+### 1. Déroulement d’une partie
+
+- **Génération procédurale de donjons** via `PartieController.DemarrerPartie` :
+  - sélection aléatoire d’un `DonjonTemplate` (nom, description, intervalle de nombre de salles),
+  - tirage du nombre de salles dans l’intervalle `[MinSalles, MaxSalles]`,
+  - création du `Donjon` persistant en base.
+- **Création des salles de jeu** dans `PartieController` via `GenererSalleAleatoire` :
+  - une suite de salles liée à la partie et au donjon,
+  - monstre, PV, force, niveau de difficulté et description par salle,
+  - actions possibles standardisées : `Combattre`, `Fouiller`, `Fuir`.
+- **Interface de jeu interactive (frontend)** :
+  - **Interface de jeu interactive (frontend)
+  - Page **Nouvelle aventure** : `/nouvelle-aventure`
+  - Page **Salle** (jeu) : `/salle/{partieId}`
+  - Page **Classement** : `/classement`
+  - Page **Historique joueur** : `/historique`
+
+  **Captures d’écran :**
+
+  - **Page Nouvelle Aventure**  
+    ![Nouvelle aventure](BlazorGame.Client/wwwroot/images/readme/nouvelle-aventure.png)
+
+  - **Interface Salle**  
+    ![Salle1](BlazorGame.Client/wwwroot/images/readme/salle1.png)![Salle1](BlazorGame.Client/wwwroot/images/readme/salle2.png)
+
+  - **Partie en Cours**  
+    ![PartieEnCours](BlazorGame.Client/wwwroot/images/readme/partieencours.png)
+
+  - **Historique**  
+     ![Historique](BlazorGame.Client/wwwroot/images/readme/historique.png)
+
+- **Calcul du score et logique de combat** dans `SalleController.ExecuterAction` :
+  - probabilité de victoire / trésor / piège en fonction du choix,
+  - points gagnés ou perdus selon l’action (combat, fuite, fouille),
+  - mise à jour des PV du monstre, de l’état de la salle et du score global de la partie.
+- **Fin de donjon et sauvegarde** :
+  - détection de la dernière salle visitée (position maximale de la partie),
+  - bascule de `Partie.EstTerminee` à `true` en fin de donjon,
+  - persistance du score final et de l’historique des salles en base PostgreSQL.
+- **Endpoints de consultation des parties** :
+  - `GET /api/Partie` : liste des parties avec joueur, donjon et salles,
+  - `GET /api/Partie/joueur/{joueurId}` : historique des parties d’un joueur,
+  - `GET /api/Partie/joueur/{joueurId}/encours` : dernière partie non terminée (reprise de partie),
+  - `PATCH /api/Partie/{id}/terminer` : clôture explicite d’une partie avec score.
+
 ---
 
 ## Lancement du projet
+
+Les commandes de lancement restent identiques :
+
 ```bash
-dotnet run --project BlazorGame.Api
-dotnet run --project BlazorGame.Client
+# API
+cd BlazorGame.Api
+ dotnet run
+
+# Frontend Blazor WebAssembly
+cd ../BlazorGame.Client
+ dotnet run
 ```
+
+Ouvrir ensuite le client sur l’URL indiquée par `dotnet run` (par défaut `https://localhost:5001` ou `https://localhost:7180` selon la configuration).
+
 ---
 </details>
+
+
