@@ -9,6 +9,7 @@ using BlazorGame.Api.Controllers;
 using BlazorGame.Api.Data;
 using BlazorGame.Domain;
 using BlazorGame.Api.GameConfig;
+using BlazorGame.Api.Services;
 
 using System.Threading.Tasks;
 
@@ -132,7 +133,8 @@ namespace BlazorGame.Tests
                 new DonjonTemplate("Donjon Test Unitaire", "Template pour tests", 1, 1)
             };
 
-            var controller = new PartieController(context, templates);
+            var generator = new DonjonGenerator(context, templates, new Random(42));
+            var controller = new PartieController(context, generator);
 
             // On lance une partie
             var demarrerResult = await controller.DemarrerPartie(joueur.Id);

@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BlazorGame.Domain;
 using BlazorGame.Api.Data;
-using BlazorGame.Api.GameConfig;
+using BlazorGame.Api.Contracts;
+using BlazorGame.Api.Services;
 
 namespace BlazorGame.Api.Controllers
 {
@@ -11,13 +12,12 @@ namespace BlazorGame.Api.Controllers
     public class PartieController : ControllerBase
     {
         private readonly AventureDbContext _context;
-        private readonly Random _random = new();
-        private readonly IReadOnlyList<DonjonTemplate> _donjonTemplates = DonjonTemplates.All;
+        private readonly IDonjonGenerator _donjonGenerator;
 
-       public PartieController(AventureDbContext context, IReadOnlyList<DonjonTemplate>? templates = null)
+       public PartieController(AventureDbContext context, IDonjonGenerator donjonGenerator)
         {
             _context = context;
-            _donjonTemplates = templates ?? DonjonTemplates.All;
+            _donjonGenerator = donjonGenerator;
         }
 
         // POST: api/Partie/demarrer?joueurId=xxxxx
@@ -26,109 +26,28 @@ namespace BlazorGame.Api.Controllers
         //  - une Partie liée au Joueur + Donjon
         //  - des Salles procédurales liées Partie + Donjon
         [HttpPost("demarrer")]
-        public async Task<ActionResult<Partie>> DemarrerPartie([FromQuery] Guid joueurId)
+        public async Task<ActionResult<Partie>> DemarrerPartie([FromQuery] Guid joueurId, CancellationToken cancellationToken)
         {
-            // 1. Vérifier que le joueur existe
-            var joueur = await _context.Joueurs.FindAsync(joueurId);
-            if (joueur == null)
+            if (joueurId == Guid.Empty)
+                return BadRequest("joueurId est requis.");
+
+            try
             {
-                return BadRequest("Le joueur spécifié n'existe pas.");
+                var partieCreee = await _donjonGenerator.DemarrerPartieAsync(joueurId, cancellationToken);
+                return Ok(partieCreee);
             }
-/*
-            // 2. Créer un donjon aléatoire
-            var donjon = new Donjon
+            catch (InvalidOperationException ex)
             {
-                Nom = "Donjon Mystérieux",
-                Description = "Généré automatiquement",
-                NombreDeSalles = 5
-            };
-            _context.Donjons.Add(donjon);
-            await _context.SaveChangesAsync();*/
-            // 2. Choisir un template de donjon aléatoirement
-            var template = _donjonTemplates[_random.Next(_donjonTemplates.Count)];
-
-            // Nombre de salles aléatoire dans l’intervalle du template
-            var nbSalles = _random.Next(template.MinSalles, template.MaxSalles + 1);
-
-            // 3. Créer le donjon basé sur le template
-            var donjon = new Donjon
-            {
-                Nom = template.Nom,
-                Description = template.Description,
-                NombreDeSalles = nbSalles
-            };
-
-            _context.Donjons.Add(donjon);
-            await _context.SaveChangesAsync();
-
-            // 4. Créer la partie (on force l’Id pour référencer depuis les salles)
-            var partieId = Guid.NewGuid();
-            var partie = new Partie
-            {
-                Id = partieId,
-                JoueurId = joueurId,
-                DonjonId = donjon.Id,
-                Date = DateTime.UtcNow,
-                ScoreFinal = 0,
-                EstTerminee = false,
-                Salles = new List<Salle>()
-            };
-
-            // 4. Générer les salles p
-            for (int position = 1; position <= donjon.NombreDeSalles; position++)
-            {
-                partie.Salles.Add(GenererSalleAleatoire(partieId, donjon.Id, position));
+                return NotFound(ex.Message);
             }
-
-            _context.Parties.Add(partie);
-            await _context.SaveChangesAsync();
-
-            // 5. Charger les relations avant de renvoyer au front
-            await _context.Entry(partie).Reference(p => p.Donjon).LoadAsync();
-            await _context.Entry(partie).Collection(p => p.Salles).LoadAsync();
-
-            // On renvoie la partie complète (utilisée par ton front Blazor)
-            return Ok(partie);
-        }
-
-        // Méthode utilitaire privée pour la génération d'une salle
-        private Salle GenererSalleAleatoire(Guid partieId, Guid donjonId, int position)
-        {
-            var typesMonstres = new[] { "Gobelin", "Orc", "Squelette", "Dragonnet" };
-            var images = new[] { "goblin.png", "orc.png", "skeleton.png", "dragon.png" };
-
-            int index = _random.Next(typesMonstres.Length);
-
-            var difficulte = position switch
+            catch (ArgumentException ex)
             {
-                1 => NiveauDifficulte.Facile,
-                2 => NiveauDifficulte.Facile,
-                3 => NiveauDifficulte.Moyen,
-                4 => NiveauDifficulte.Moyen,
-                5 => NiveauDifficulte.Difficile,
-                _ => NiveauDifficulte.Moyen
-            };
-
-            return new Salle
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
             {
-                Id = Guid.NewGuid(),
-                PartieId = partieId,    // FK vers Partie
-                DonjonId = donjonId,    // FK vers Donjon
-                Position = position,
-                EstVisitee = false,
-                NomMonstre = typesMonstres[index],
-                ImageMonstre = images[index],
-                PvMonstre = 10 * position,
-                ForceMonstre = 2 * position,
-                Niveau = difficulte,
-                Description = $"Salle {position} : un {typesMonstres[index]} vous attend...",
-                ChoixPossible = new List<ChoixAction>
-                {
-                    ChoixAction.Combattre,
-                    ChoixAction.Fouiller,
-                    ChoixAction.Fuir
-                }
-            };
+                return StatusCode(500, $"Erreur lors de la génération du donjon : {ex.Message}");
+            }
         }
 
         // GET: api/Partie/{id}
@@ -232,13 +151,16 @@ namespace BlazorGame.Api.Controllers
 
         // PATCH: api/Partie/{id}/terminer
         [HttpPatch("{id}/terminer")]
-        public async Task<IActionResult> TerminerPartie(Guid id, [FromBody] int scoreFinal)
+        public async Task<IActionResult> TerminerPartie(Guid id, [FromBody] TerminerPartieRequest request)
         {
+            if (!ModelState.IsValid || request == null)
+                return BadRequest(ModelState);
+
             var partie = await _context.Parties.FindAsync(id);
             if (partie == null) return NotFound();
 
             partie.EstTerminee = true;
-            partie.ScoreFinal = scoreFinal;
+            partie.ScoreFinal = request.ScoreFinal;
 
             await _context.SaveChangesAsync();
             return NoContent();

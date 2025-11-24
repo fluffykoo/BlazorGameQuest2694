@@ -1,13 +1,22 @@
 using BlazorGame.Api.Data;
+using BlazorGame.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Récupère la chaîne de connexion depuis la configuration (appsettings / variables d'environnement)
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DB_CONNECTION")
+    ?? "Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres";
+
 // Configuration de la base de données PostgreSQL ---
 builder.Services.AddDbContext<AventureDbContext>(options =>
-    options.UseNpgsql("Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres"));
+    options.UseNpgsql(connectionString));
 
+// Services métiers
+builder.Services.AddScoped<IDonjonGenerator, DonjonGenerator>();
 // CORS : autoriser le client Blazor (http://localhost:5000)
 builder.Services.AddCors(options =>
 {

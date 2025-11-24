@@ -24,14 +24,16 @@ public class AventureDbContextFactory : IDesignTimeDbContextFactory<AventureDbCo
     public AventureDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<AventureDbContext>();
-        optionsBuilder.UseNpgsql(
-            "Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres");
+        var connectionString =
+            Environment.GetEnvironmentVariable("DB_CONNECTION")
+            ?? "Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres";
+
+        optionsBuilder.UseNpgsql(connectionString);
 
         // Test direct de connexion
         try
         {
-            using var conn = new Npgsql.NpgsqlConnection(
-                "Host=127.0.0.1;Port=5432;Database=AventureDB;Username=postgres;Password=postgres");
+            using var conn = new Npgsql.NpgsqlConnection(connectionString);
             conn.Open();
             Console.WriteLine("✅ Connexion PostgreSQL réussie !");
         }

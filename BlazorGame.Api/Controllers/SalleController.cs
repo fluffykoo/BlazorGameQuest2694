@@ -100,7 +100,7 @@ namespace BlazorGame.Api.Controllers
         {
             var salle = await _context.Salles
                 .Include(s => s.Partie)
-                .ThenInclude(p => p.Salles)
+                .ThenInclude(p => p!.Salles)
                 .FirstOrDefaultAsync(s => s.Id == id);
 
             if (salle == null || salle.Partie == null)
