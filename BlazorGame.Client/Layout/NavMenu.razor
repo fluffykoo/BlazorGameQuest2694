@@ -1,4 +1,6 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject BlazorGame.Client.Services.PlayerState PlayerState
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">BlazorGame.Client</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
@@ -21,6 +23,11 @@
             </NavLink>
         </div>
         <div class="nav-item px-3">
+            <NavLink class="nav-link" href="joueurs">
+                <span class="bi bi-people-fill" aria-hidden="true"></span> Joueurs
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
             <NavLink class="nav-link" href="classement">
                 <span class="bi bi-trophy-nav-menu" aria-hidden="true"></span> Classement
             </NavLink>
@@ -39,6 +46,24 @@
             <NavLink class="nav-link" href="/historique-parties">
                 <span class="bi bi-archive-fill" aria-hidden="true"></span> Historique
             </NavLink>
+        </div>
+        <div class="nav-item px-3 mt-2">
+            @if (PlayerState.CurrentJoueurId is not null && PlayerState.CurrentJoueurId != Guid.Empty)
+            {
+                <div class="alert alert-success p-2 mb-0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span>Joueur : <strong>@PlayerState.CurrentJoueurNom</strong></span>
+                        <NavLink class="btn btn-sm btn-light ms-2" href="joueurs">Changer</NavLink>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning p-2 mb-0 d-flex align-items-center justify-content-between">
+                    <span>Aucun joueur sélectionné</span>
+                    <NavLink class="btn btn-sm btn-light ms-2" href="joueurs">Choisir</NavLink>
+                </div>
+            }
         </div>
     </nav>
 </div>
