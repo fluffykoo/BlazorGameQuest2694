@@ -2,6 +2,7 @@
 @using BlazorGame.Domain
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject BlazorGame.Client.Services.PlayerState PlayerState
 
 <h1>Historique des parties</h1>
 
@@ -54,15 +55,18 @@ else
 }
 
 @code {
-    // mettre l'Id de ton Joueur1 pour le moment
-    private readonly Guid joueurIdDemo = Guid.Parse("3f9f8a76-d7e9-4642-a3f4-efb0604eab40");
-
     private List<Partie>? parties;
 
     protected override async Task OnInitializedAsync()
     {
+        if (PlayerState.CurrentJoueurId is null || PlayerState.CurrentJoueurId == Guid.Empty)
+        {
+            Navigation.NavigateTo("/joueurs");
+            return;
+        }
+
         parties = await Http.GetFromJsonAsync<List<Partie>>(
-            $"api/Partie/joueur/{joueurIdDemo}");
+            $"api/Partie/joueur/{PlayerState.CurrentJoueurId}");
     }
 
     private void OuvrirHistorique(Guid partieId)

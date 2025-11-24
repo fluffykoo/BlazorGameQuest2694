@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject BlazorGame.Client.Services.PlayerState PlayerState
 @using System.Linq
 
 <PageTitle>Nouvelle Aventure</PageTitle>
@@ -67,15 +68,19 @@
 
     private async Task CommencerAventure()
     {
+        if (PlayerState.CurrentJoueurId is null || PlayerState.CurrentJoueurId == Guid.Empty)
+        {
+            Navigation.NavigateTo("/joueurs");
+            return;
+        }
+
         isLoading = true;
         MessageStatut = "";
 
         try
         {
-            var joueurId = Guid.Parse("3f9f8a76-d7e9-4642-a3f4-efb0604eab40");
-
             var response = await Http.PostAsync(
-                $"api/Partie/demarrer?joueurId={joueurId}",
+                $"api/Partie/demarrer?joueurId={PlayerState.CurrentJoueurId}",
                 content: null
             );
 

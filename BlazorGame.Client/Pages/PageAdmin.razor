@@ -1,3 +1,65 @@
 @page "/admin"
-<PageTitle>Admin Page</PageTitle>
-<h1>Hello vous etes sur la page Admin !</h1>
+@using BlazorGame.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<PageTitle>Admin</PageTitle>
+
+<div class="container mt-4">
+    <h1>Administration</h1>
+    <p class="text-muted">Vue rapide sur les joueurs enregistrés.</p>
+
+    @if (isLoading)
+    {
+        <p>Chargement...</p>
+    }
+    else if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-warning">@message</div>
+    }
+    else
+    {
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Email</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var j in joueurs)
+                {
+                    <tr>
+                        <td>@j.Nom</td>
+                        <td>@j.Mail</td>
+                        <td>@j.ScoreTotal</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<Joueur> joueurs = new();
+    private bool isLoading = true;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var data = await Http.GetFromJsonAsync<List<Joueur>>("api/Joueurs");
+            joueurs = data ?? new();
+        }
+        catch (Exception ex)
+        {
+            message = $"Erreur chargement joueurs : {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

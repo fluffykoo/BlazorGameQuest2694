@@ -3,6 +3,7 @@
 @using System.Net.Http.Json
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject BlazorGame.Client.Services.PlayerState PlayerState
 
 <h1>Partie en cours</h1>
 
@@ -41,9 +42,6 @@ else
 }
 
 @code {
-    // Même joueur de démo que pour l’historique
-    private readonly Guid joueurIdDemo = Guid.Parse("3f9f8a76-d7e9-4642-a3f4-efb0604eab40");
-
     private Partie? partieEnCours;
     private bool isLoading = true;
     private int nbSallesTotales;
@@ -51,11 +49,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (PlayerState.CurrentJoueurId is null || PlayerState.CurrentJoueurId == Guid.Empty)
+        {
+            Navigation.NavigateTo("/joueurs");
+            return;
+        }
+
         try
         {
             // On récupère toutes les parties du joueur
             var parties = await Http.GetFromJsonAsync<List<Partie>>(
-                $"api/Partie/joueur/{joueurIdDemo}");
+                $"api/Partie/joueur/{PlayerState.CurrentJoueurId}");
 
             if (parties is not null && parties.Any())
             {

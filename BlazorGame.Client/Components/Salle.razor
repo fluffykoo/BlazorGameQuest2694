@@ -2,6 +2,7 @@
 @using BlazorGame.Domain
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject BlazorGame.Client.Services.PlayerState PlayerState
 @using System.Net.Http.Json
 
 @if (currentSalle == null)
@@ -149,17 +150,14 @@ else
 
             totalSalles = partie.Salles?.Count ?? 0;
 
-            currentSalle = partie.Salles
+            currentSalle = partie.Salles?
                 .OrderBy(s => s.Position)
                 .FirstOrDefault(s => s.EstVisitee == false);
 
             if (currentSalle == null)
             {
                 messageResultat = "Félicitations ! L'aventure est terminée.";
-                if (partie.EstTerminee)
-                {
-                    Navigation.NavigateTo($"/score/{PartieId}");
-                }
+                Navigation.NavigateTo($"/score/{PartieId}");
             }
             else if (actionFaite)
             {
@@ -187,6 +185,18 @@ else
 
             currentSalle.Resultat = await response.Content.ReadFromJsonAsync<ActionResultat>();
             currentSalle.ChoixFait = action;
+            currentSalle.EstVisitee = true;
+            if (currentSalle.Resultat != null)
+            {
+                var restant = totalSalles - currentSalle.Position;
+                if (restant <= 0)
+                {
+                    // marque la partie comme terminée côté API
+                    await Http.PatchAsJsonAsync(
+                        $"api/Partie/{PartieId}/terminer",
+                        new { scoreFinal = currentSalle.Resultat.ScoreTotal });
+                }
+            }
 
             StateHasChanged();
         }

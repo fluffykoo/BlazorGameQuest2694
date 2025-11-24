@@ -1,0 +1,80 @@
+@page "/score/{PartieId:guid}"
+@using BlazorGame.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Score de l'aventure</PageTitle>
+
+<div class="container mt-4">
+    <h2>Résumé de la partie</h2>
+
+    @if (isLoading)
+    {
+        <p>Chargement...</p>
+    }
+    else if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-warning">@message</div>
+    }
+    else if (partie is not null)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h4>@partie.Donjon?.Nom</h4>
+                <p>@partie.Donjon?.Description</p>
+                <p>Date : @partie.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+                <h3>Score final : @partie.ScoreFinal pts</h3>
+                <p>Statut : @(partie.EstTerminee ? "Terminée" : "En cours")</p>
+            </div>
+        </div>
+
+        <button class="btn btn-primary me-2" @onclick="RetourDonjon">Retour au donjon</button>
+        <button class="btn btn-success" @onclick="NouvelleAventure">Lancer une nouvelle aventure</button>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid PartieId { get; set; }
+
+    private Partie? partie;
+    private bool isLoading = true;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Charger();
+    }
+
+    private async Task Charger()
+    {
+        isLoading = true;
+        try
+        {
+            partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{PartieId}");
+            if (partie == null)
+            {
+                message = "Partie introuvable.";
+                return;
+            }
+
+            if (!partie.EstTerminee)
+            {
+                await Http.PatchAsJsonAsync(
+                    $"api/Partie/{PartieId}/terminer",
+                    new { scoreFinal = partie.ScoreFinal });
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Erreur chargement score : {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void RetourDonjon() => Navigation.NavigateTo($"/donjon/{PartieId}");
+    private void NouvelleAventure() => Navigation.NavigateTo("/nouvelle-aventure");
+}
