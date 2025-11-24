@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Models;
+using BlazorGame.Domain;
 
 namespace BlazorGame.Api.Data;
 

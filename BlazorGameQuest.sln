@@ -5,11 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorGame.Client", "BlazorGame.Client\BlazorGame.Client.csproj", "{C7B76ABF-F2AD-46F6-BF62-A440530B1501}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Models", "Models\Models.csproj", "{A2B28750-522A-4EA3-91F7-1CAE50F9EB42}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorGame.Tests", "BlazorGame.Tests\BlazorGame.Tests.csproj", "{84965A5B-EB9D-442E-BEBB-11900510E3FB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorGame.Api", "BlazorGame.Api\BlazorGame.Api.csproj", "{C49FAFB0-E236-404E-8937-643EEA45D5AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorGame.Domain", "BlazorGame.Domain\BlazorGame.Domain.csproj", "{1193B330-09C8-44AA-BC25-7A47B1C19EB6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,6 +69,18 @@ Global
 		{C49FAFB0-E236-404E-8937-643EEA45D5AF}.Release|x64.Build.0 = Release|Any CPU
 		{C49FAFB0-E236-404E-8937-643EEA45D5AF}.Release|x86.ActiveCfg = Release|Any CPU
 		{C49FAFB0-E236-404E-8937-643EEA45D5AF}.Release|x86.Build.0 = Release|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Debug|x64.Build.0 = Debug|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Debug|x86.Build.0 = Debug|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Release|x64.ActiveCfg = Release|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Release|x64.Build.0 = Release|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Release|x86.ActiveCfg = Release|Any CPU
+		{1193B330-09C8-44AA-BC25-7A47B1C19EB6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

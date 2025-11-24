@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Models;
+using BlazorGame.Domain;
 using BlazorGame.Api.Data;
 
 namespace BlazorGame.Api.Controllers

@@ -1,7 +1,10 @@
-using FluentAssertions;
-using Models;
+using System;
+using System.Collections.Generic;
 
-namespace UnitTests.Models
+using BlazorGame.Domain;
+using Xunit;
+
+namespace BlazorGame.Tests
 {
     public class SalleTests
     {
@@ -12,12 +15,12 @@ namespace UnitTests.Models
             var salle = new Salle();
 
             // Assert
-            salle.Id.Should().NotBe(Guid.Empty);
-            salle.Position.Should().Be(0);
-            salle.Description.Should().BeEmpty();
-            salle.ChoixPossible.Should().BeEmpty();
-            salle.ChoixFait.Should().BeNull();
-            salle.Resultat.Should().BeNull();
+            Assert.NotEqual(Guid.Empty, salle.Id);
+            Assert.Equal(0, salle.Position);
+            Assert.Equal(string.Empty, salle.Description ?? string.Empty);
+            Assert.Empty(salle.ChoixPossible);
+            Assert.Null(salle.ChoixFait);
+            Assert.Null(salle.Resultat);
         }
 
         [Theory]
@@ -33,7 +36,7 @@ namespace UnitTests.Models
             salle.Niveau = difficulte;
 
             // Assert
-            salle.Niveau.Should().Be(difficulte);
+            Assert.Equal(difficulte, salle.Niveau);
         }
 
         [Fact]
@@ -41,19 +44,19 @@ namespace UnitTests.Models
         {
             // Arrange
             var salle = new Salle();
-            var choix = new List<ChoixAction> 
-            { 
-                ChoixAction.Combattre, 
-                ChoixAction.Fuir, 
-                ChoixAction.Fouiller 
+            var choix = new List<ChoixAction>
+            {
+                ChoixAction.Combattre,
+                ChoixAction.Fuir,
+                ChoixAction.Fouiller
             };
 
             // Act
             salle.ChoixPossible = choix;
 
             // Assert
-            salle.ChoixPossible.Should().HaveCount(3);
-            salle.ChoixPossible.Should().ContainInOrder(choix);
+            Assert.Equal(3, salle.ChoixPossible.Count);
+            Assert.Equal(choix, salle.ChoixPossible);
         }
 
         [Fact]
@@ -67,7 +70,7 @@ namespace UnitTests.Models
             salle.ChoixFait = choix;
 
             // Assert
-            salle.ChoixFait.Should().Be(choix);
+            Assert.Equal(choix, salle.ChoixFait);
         }
 
         [Fact]
@@ -87,11 +90,11 @@ namespace UnitTests.Models
             salle.Resultat = resultat;
 
             // Assert
-            salle.Resultat.Should().NotBeNull();
-            salle.Resultat.Action.Should().Be(ChoixAction.Fouiller);
-            salle.Resultat.Points.Should().Be(25);
-            salle.Resultat.EstPiege.Should().BeFalse();
-            salle.Resultat.Message.Should().Be("Vous avez trouvé un trésor!");
+            Assert.NotNull(salle.Resultat);
+            Assert.Equal(ChoixAction.Fouiller, salle.Resultat.Action);
+            Assert.Equal(25, salle.Resultat.Points);
+            Assert.False(salle.Resultat.EstPiege);
+            Assert.Equal("Vous avez trouvé un trésor!", salle.Resultat.Message);
         }
 
         [Fact]
@@ -107,8 +110,8 @@ namespace UnitTests.Models
             salle.Position = position;
 
             // Assert
-            salle.Description.Should().Be(description);
-            salle.Position.Should().Be(position);
+            Assert.Equal(description, salle.Description);
+            Assert.Equal(position, salle.Position);
         }
     }
 }

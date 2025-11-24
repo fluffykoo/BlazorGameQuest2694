@@ -1,8 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using BlazorGame.Api.Controllers;
 using BlazorGame.Api.Data;
-using Models;
+using BlazorGame.Domain;
+using BlazorGame.Api.GameConfig;
+
+using System.Threading.Tasks;
+
 using Xunit;
 
 namespace BlazorGame.Tests
@@ -14,14 +23,15 @@ namespace BlazorGame.Tests
             var options = new DbContextOptionsBuilder<AventureDbContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
+
             return new AventureDbContext(options);
         }
 
         private void SeedTestData(AventureDbContext context)
         {
-            // Création d'un joueur de test
-            var joueur = new Joueur 
-            { 
+            // Joueur test
+            var joueur = new Joueur
+            {
                 Id = Guid.NewGuid(),
                 Nom = "TestJoueur",
                 Mail = "test@example.com",
@@ -29,9 +39,9 @@ namespace BlazorGame.Tests
             };
             context.Joueurs.Add(joueur);
 
-            // Création d'un administrateur de test
-            var admin = new Administrateur 
-            { 
+            // Admin test
+            var admin = new Administrateur
+            {
                 Id = Guid.NewGuid(),
                 NomUtilisateur = "admin",
                 Email = "admin@test.com",
@@ -39,7 +49,7 @@ namespace BlazorGame.Tests
             };
             context.Administrateurs.Add(admin);
 
-            // Création d'un donjon de test
+            // Donjon test
             var donjon = new Donjon
             {
                 Id = Guid.NewGuid(),
@@ -55,17 +65,16 @@ namespace BlazorGame.Tests
         [Fact]
         public void Test_JoueursController_GetAll()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
+
             var controller = new JoueursController(context);
 
-            // Act
             var result = controller.GetAll();
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
             var joueurs = Assert.IsAssignableFrom<List<Joueur>>(okResult.Value);
+
             Assert.Single(joueurs);
             Assert.Equal("TestJoueur", joueurs[0].Nom);
         }
@@ -73,90 +82,92 @@ namespace BlazorGame.Tests
         [Fact]
         public void Test_JoueursController_GetById()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
+
             var controller = new JoueursController(context);
             var joueurId = context.Joueurs.First().Id;
 
-            // Act
             var result = controller.GetById(joueurId);
 
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var joueur = Assert.IsType<Joueur>(okResult.Value);
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var joueur = Assert.IsType<Joueur>(ok.Value);
+
             Assert.Equal(joueurId, joueur.Id);
         }
 
         [Fact]
         public void Test_JoueursController_Create()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
+
             var controller = new JoueursController(context);
-            var newJoueur = new Joueur 
-            { 
+
+            var newJoueur = new Joueur
+            {
                 Nom = "NouveauJoueur",
                 Mail = "nouveau@test.com",
                 ScoreTotal = 0
             };
 
-            // Act
             var result = controller.Create(newJoueur);
 
-            // Assert
-            var createdResult = Assert.IsType<CreatedAtActionResult>(result);
-            var joueur = Assert.IsType<Joueur>(createdResult.Value);
+            var created = Assert.IsType<CreatedAtActionResult>(result);
+            var joueur = Assert.IsType<Joueur>(created.Value);
+
             Assert.Equal("NouveauJoueur", joueur.Nom);
             Assert.Single(context.Joueurs);
         }
 
-        [Fact]
-        public void Test_PartieController_GetParties()
+       [Fact]
+        public async Task Test_PartieController_GetParties()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
-            
-            // Création d'une partie de test
+
             var joueur = context.Joueurs.First();
-            var partie = new Partie
+
+            var templates = new List<DonjonTemplate>
             {
-                Id = Guid.NewGuid(),
-                JoueurId = joueur.Id,
-                EstTerminee = false,
-                ScoreFinal = 0
+                new DonjonTemplate("Donjon Test Unitaire", "Template pour tests", 1, 1)
             };
-            context.Parties.Add(partie);
-            context.SaveChanges();
 
-            var controller = new PartieController(context);
+            var controller = new PartieController(context, templates);
 
-            // Act
-            var result = controller.GetParties().Result;
+            // On lance une partie
+            var demarrerResult = await controller.DemarrerPartie(joueur.Id);
 
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var parties = Assert.IsAssignableFrom<List<Partie>>(okResult.Value);
+            // Récupération du OkObjectResult :
+            var ok = Assert.IsType<OkObjectResult>(demarrerResult.Result);
+
+            var partieCreee = Assert.IsType<Partie>(ok.Value);
+
+            Assert.Equal(joueur.Id, partieCreee.JoueurId);
+
+            // On teste GetParties
+            var actionResult = await controller.GetParties();
+
+            var parties = Assert.IsAssignableFrom<IEnumerable<Partie>>(actionResult.Value);
+
             Assert.Single(parties);
         }
 
-        [Fact]
-        public void Test_SalleController_GetSalles()
+       [Fact]
+        public async Task Test_SalleController_GetSalles()
         {
             // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
-            
-            // Création d'une partie et d'une salle de test
+
             var joueur = context.Joueurs.First();
+
             var partie = new Partie
             {
                 Id = Guid.NewGuid(),
                 JoueurId = joueur.Id
             };
             context.Parties.Add(partie);
-            
+
             var salle = new Salle
             {
                 Id = Guid.NewGuid(),
@@ -172,29 +183,27 @@ namespace BlazorGame.Tests
             var controller = new SalleController(context);
 
             // Act
-            var result = controller.GetSalles().Result;
+            var actionResult = await controller.GetSalles(); // ActionResult<IEnumerable<Salle>>
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var salles = Assert.IsAssignableFrom<List<Salle>>(okResult.Value);
+            var salles = Assert.IsAssignableFrom<IEnumerable<Salle>>(actionResult.Value);
             Assert.Single(salles);
-            Assert.Equal("Salle test", salles[0].Description);
+            Assert.Equal("Salle test", salles.First().Description);
         }
 
         [Fact]
         public void Test_AdministrateursController_GetAll()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
+
             var controller = new AdministrateursController(context);
 
-            // Act
             var result = controller.GetAll();
 
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var admins = Assert.IsAssignableFrom<List<Administrateur>>(okResult.Value);
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var admins = Assert.IsAssignableFrom<List<Administrateur>>(ok.Value);
+
             Assert.Single(admins);
             Assert.Equal("admin", admins[0].NomUtilisateur);
         }
@@ -202,17 +211,16 @@ namespace BlazorGame.Tests
         [Fact]
         public void Test_DonjonsController_GetAll()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
+
             var controller = new DonjonsController(context);
 
-            // Act
             var result = controller.GetAll();
 
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var donjons = Assert.IsAssignableFrom<List<Donjon>>(okResult.Value);
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var donjons = Assert.IsAssignableFrom<List<Donjon>>(ok.Value);
+
             Assert.Single(donjons);
             Assert.Equal("Donjon Test", donjons[0].Nom);
         }
@@ -220,25 +228,27 @@ namespace BlazorGame.Tests
         [Fact]
         public void Test_JoueursController_Update()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
+
             var controller = new JoueursController(context);
+
             var joueurId = context.Joueurs.First().Id;
-            var updatedJoueur = new Joueur 
-            { 
+
+            var updated = new Joueur
+            {
                 Id = joueurId,
                 Nom = "JoueurModifié",
                 Mail = "modifie@test.com",
                 ScoreTotal = 200
             };
 
-            // Act
-            var result = controller.Update(joueurId, updatedJoueur);
+            var result = controller.Update(joueurId, updated);
 
-            // Assert
             Assert.IsType<NoContentResult>(result);
+
             var joueur = context.Joueurs.Find(joueurId);
+
             Assert.Equal("JoueurModifié", joueur.Nom);
             Assert.Equal(200, joueur.ScoreTotal);
         }
@@ -246,60 +256,35 @@ namespace BlazorGame.Tests
         [Fact]
         public void Test_JoueursController_Delete()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
+
             var controller = new JoueursController(context);
+
             var joueurId = context.Joueurs.First().Id;
 
-            // Act
             var result = controller.Delete(joueurId);
 
-            // Assert
             Assert.IsType<NoContentResult>(result);
             Assert.Empty(context.Joueurs);
         }
 
         [Fact]
-        public void Test_PartieController_CreatePartie()
+        public async Task Test_SalleController_ExecuterAction()
         {
-            // Arrange
             using var context = GetInMemoryDbContext();
             SeedTestData(context);
-            var controller = new PartieController(context);
-            var joueurId = context.Joueurs.First().Id;
-            var nouvellePartie = new Partie
-            {
-                JoueurId = joueurId,
-                EstTerminee = false,
-                ScoreFinal = 0
-            };
 
-            // Act
-            var result = controller.PostPartie(nouvellePartie).Result;
-
-            // Assert
-            var createdResult = Assert.IsType<CreatedAtActionResult>(result);
-            var partie = Assert.IsType<Partie>(createdResult.Value);
-            Assert.Equal(joueurId, partie.JoueurId);
-            Assert.Single(context.Parties);
-        }
-
-        [Fact]
-        public void Test_SalleController_ExecuterAction()
-        {
-            // Arrange
-            using var context = GetInMemoryDbContext();
-            SeedTestData(context);
-            
             var joueur = context.Joueurs.First();
+
             var partie = new Partie
             {
                 Id = Guid.NewGuid(),
                 JoueurId = joueur.Id
             };
+
             context.Parties.Add(partie);
-            
+
             var salle = new Salle
             {
                 Id = Guid.NewGuid(),
@@ -307,19 +292,24 @@ namespace BlazorGame.Tests
                 Position = 1,
                 Description = "Salle test",
                 Niveau = NiveauDifficulte.Moyen,
-                ChoixPossible = new List<ChoixAction> { ChoixAction.Combattre, ChoixAction.Fouiller }
+                ChoixPossible = new List<ChoixAction>
+                {
+                    ChoixAction.Combattre,
+                    ChoixAction.Fouiller
+                }
             };
+
             context.Salles.Add(salle);
             context.SaveChanges();
 
             var controller = new SalleController(context);
 
             // Act
-            var result = controller.ExecuterAction(salle.Id, ChoixAction.Combattre).Result;
+            var actionResult = await controller.ExecuterAction(salle.Id, ChoixAction.Combattre); // ActionResult<ActionResultat>
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var resultat = okResult.Value; // ActionResultat
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var resultat = Assert.IsType<ActionResultat>(okResult.Value);
             Assert.NotNull(resultat);
         }
     }

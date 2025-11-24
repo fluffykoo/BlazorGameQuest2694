@@ -25,7 +25,7 @@ namespace BlazorGame.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Models.Joueur", b =>
+            modelBuilder.Entity("BlazorGame.Domain.Joueur", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53,7 +53,7 @@ namespace BlazorGame.Api.Migrations
                     b.ToTable("Joueurs");
                 });
 
-            modelBuilder.Entity("Models.Partie", b =>
+            modelBuilder.Entity("BlazorGame.Domain.Partie", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -78,7 +78,7 @@ namespace BlazorGame.Api.Migrations
                     b.ToTable("Parties");
                 });
 
-            modelBuilder.Entity("Models.Salle", b =>
+            modelBuilder.Entity("BlazorGame.Domain.Salle", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -111,9 +111,9 @@ namespace BlazorGame.Api.Migrations
                     b.ToTable("Salles");
                 });
 
-            modelBuilder.Entity("Models.Partie", b =>
+            modelBuilder.Entity("BlazorGame.Domain.Partie", b =>
                 {
-                    b.HasOne("Models.Joueur", "Joueur")
+                    b.HasOne("BlazorGame.Domain.Joueur", "Joueur")
                         .WithMany("Historique")
                         .HasForeignKey("JoueurId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -122,15 +122,15 @@ namespace BlazorGame.Api.Migrations
                     b.Navigation("Joueur");
                 });
 
-            modelBuilder.Entity("Models.Salle", b =>
+            modelBuilder.Entity("BlazorGame.Domain.Salle", b =>
                 {
-                    b.HasOne("Models.Partie", "Partie")
+                    b.HasOne("BlazorGame.Domain.Partie", "Partie")
                         .WithMany("Salles")
                         .HasForeignKey("PartieId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("Models.ActionResultat", "Resultat", b1 =>
+                    b.OwnsOne("BlazorGame.Domain.ActionResultat", "Resultat", b1 =>
                         {
                             b1.Property<Guid>("SalleId")
                                 .HasColumnType("uuid");
@@ -161,12 +161,12 @@ namespace BlazorGame.Api.Migrations
                     b.Navigation("Resultat");
                 });
 
-            modelBuilder.Entity("Models.Joueur", b =>
+            modelBuilder.Entity("BlazorGame.Domain.Joueur", b =>
                 {
                     b.Navigation("Historique");
                 });
 
-            modelBuilder.Entity("Models.Partie", b =>
+            modelBuilder.Entity("BlazorGame.Domain.Partie", b =>
                 {
                     b.Navigation("Salles");
                 });

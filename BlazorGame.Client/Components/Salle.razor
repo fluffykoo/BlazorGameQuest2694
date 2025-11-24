@@ -1,5 +1,5 @@
 @page "/salle/{PartieId:guid}"
-@using Models
+@using BlazorGame.Domain
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @using System.Net.Http.Json
@@ -121,7 +121,7 @@ else
     [Parameter]
     public Guid PartieId { get; set; }
 
-    private Models.Salle? currentSalle;
+    private BlazorGame.Domain.Salle? currentSalle;
     private string messageResultat = "Initialisation...";
     private bool actionFaite => currentSalle?.ChoixFait.HasValue ?? false;
 

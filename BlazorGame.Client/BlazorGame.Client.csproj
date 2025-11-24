@@ -12,7 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Models\Models.csproj" />
+    <ProjectReference Include="..\BlazorGame.Domain\BlazorGame.Domain.csproj" />
+    <ProjectReference Include="..\BlazorGame.Domain\BlazorGame.Domain.csproj" />
   </ItemGroup>
 
 </Project>

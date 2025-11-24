@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using BlazorGame.Api.Data;
-using Models;
+using BlazorGame.Domain;
 
 namespace BlazorGame.Api.Controllers
     {

@@ -1,7 +1,8 @@
-﻿using FluentAssertions;
-using Models;
+﻿using System;
+using BlazorGame.Domain;
+using Xunit;
 
-namespace UnitTests.Models
+namespace BlazorGame.Tests
 {
     public class EnumsAndActionResultatTests
     {
@@ -11,18 +12,18 @@ namespace UnitTests.Models
             // Arrange & Act
             var valeurs = Enum.GetValues<NiveauDifficulte>();
 
-            // Assert
-            valeurs.Should().HaveCount(3);
-            valeurs.Should().ContainInOrder(
-                NiveauDifficulte.Facile,
-                NiveauDifficulte.Moyen, 
-                NiveauDifficulte.Difficile
-            );
-            
-            // Vérification des valeurs numériques
-            ((int)NiveauDifficulte.Facile).Should().Be(0);
-            ((int)NiveauDifficulte.Moyen).Should().Be(1);
-            ((int)NiveauDifficulte.Difficile).Should().Be(2);
+            // Assert nombre de valeurs
+            Assert.Equal(3, valeurs.Length);
+
+            // Ordre des valeurs
+            Assert.Equal(NiveauDifficulte.Facile,  (NiveauDifficulte)valeurs.GetValue(0)!);
+            Assert.Equal(NiveauDifficulte.Moyen,   (NiveauDifficulte)valeurs.GetValue(1)!);
+            Assert.Equal(NiveauDifficulte.Difficile,(NiveauDifficulte)valeurs.GetValue(2)!);
+
+            // Valeurs numériques
+            Assert.Equal(0, (int)NiveauDifficulte.Facile);
+            Assert.Equal(1, (int)NiveauDifficulte.Moyen);
+            Assert.Equal(2, (int)NiveauDifficulte.Difficile);
         }
 
         [Fact]
@@ -31,18 +32,18 @@ namespace UnitTests.Models
             // Arrange & Act
             var valeurs = Enum.GetValues<ChoixAction>();
 
-            // Assert
-            valeurs.Should().HaveCount(3);
-            valeurs.Should().ContainInOrder(
-                ChoixAction.Combattre,
-                ChoixAction.Fuir,
-                ChoixAction.Fouiller
-            );
-            
-            // Vérification des valeurs numériques
-            ((int)ChoixAction.Combattre).Should().Be(0);
-            ((int)ChoixAction.Fuir).Should().Be(1);
-            ((int)ChoixAction.Fouiller).Should().Be(2);
+            // Assert nombre de valeurs
+            Assert.Equal(3, valeurs.Length);
+
+            // Ordre des valeurs
+            Assert.Equal(ChoixAction.Combattre, (ChoixAction)valeurs.GetValue(0)!);
+            Assert.Equal(ChoixAction.Fuir,      (ChoixAction)valeurs.GetValue(1)!);
+            Assert.Equal(ChoixAction.Fouiller,  (ChoixAction)valeurs.GetValue(2)!);
+
+            // Valeurs numériques
+            Assert.Equal(0, (int)ChoixAction.Combattre);
+            Assert.Equal(1, (int)ChoixAction.Fuir);
+            Assert.Equal(2, (int)ChoixAction.Fouiller);
         }
 
         [Fact]
@@ -52,9 +53,9 @@ namespace UnitTests.Models
             var resultat = new ActionResultat();
 
             // Assert
-            resultat.Points.Should().Be(0);
-            resultat.EstPiege.Should().BeFalse();
-            resultat.Message.Should().BeEmpty();
+            Assert.Equal(0, resultat.Points);
+            Assert.False(resultat.EstPiege);
+            Assert.True(string.IsNullOrEmpty(resultat.Message));
         }
 
         [Fact]
@@ -70,10 +71,10 @@ namespace UnitTests.Models
             };
 
             // Assert
-            resultat.Action.Should().Be(ChoixAction.Combattre);
-            resultat.Points.Should().Be(100);
-            resultat.EstPiege.Should().BeTrue();
-            resultat.Message.Should().Be("C'était un piège!");
+            Assert.Equal(ChoixAction.Combattre, resultat.Action);
+            Assert.Equal(100, resultat.Points);
+            Assert.True(resultat.EstPiege);
+            Assert.Equal("C'était un piège!", resultat.Message);
         }
     }
 }

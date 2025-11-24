@@ -12,7 +12,7 @@ Un administrateur gère les joueurs et les scores via une interface dédiée.
 |--------|------|
 | **BlazorGame.Client** | Frontend Blazor WebAssembly (pages, navigation, composant Salle). |
 | **BlazorGame.Api** | API et gestion de la base de données (PostgreSQL + EF Core). |
-| **Models** | Classes métiers (Joueur, Partie, Salle). |
+| **BlazorGame.Domain** | Classes métiers (Joueur, Partie, Salle). |
 | **BlazorGame.Tests** | Tests unitaires (xUnit). |
 ---
 <details>

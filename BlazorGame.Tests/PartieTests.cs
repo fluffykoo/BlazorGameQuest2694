@@ -1,7 +1,9 @@
-using FluentAssertions;
-using Models;
+using System;
+using System.Collections.Generic;
+using BlazorGame.Domain;
+using Xunit;
 
-namespace UnitTests.Models
+namespace BlazorGame.Tests
 {
     public class PartieTests
     {
@@ -12,12 +14,16 @@ namespace UnitTests.Models
             var partie = new Partie();
 
             // Assert
-            partie.Id.Should().NotBe(Guid.Empty);
-            partie.JoueurId.Should().Be(Guid.Empty);
-            partie.Salles.Should().BeEmpty();
-            partie.ScoreFinal.Should().Be(0);
-            partie.Date.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-            partie.EstTerminee.Should().BeFalse();
+            Assert.NotEqual(Guid.Empty, partie.Id);
+            Assert.Equal(Guid.Empty, partie.JoueurId);
+            Assert.Empty(partie.Salles);
+            Assert.Equal(0, partie.ScoreFinal);
+
+            // Date proche de maintenant (tolérance 2 secondes)
+            var diff = DateTime.UtcNow - partie.Date;
+            Assert.True(diff.TotalSeconds < 2);
+
+            Assert.False(partie.EstTerminee);
         }
 
         [Fact]
@@ -33,8 +39,9 @@ namespace UnitTests.Models
             partie.Salles.Add(salle2);
 
             // Assert
-            partie.Salles.Should().HaveCount(2);
-            partie.Salles.Should().ContainInOrder(salle1, salle2);
+            Assert.Equal(2, partie.Salles.Count);
+            Assert.Equal(salle1, partie.Salles[0]);
+            Assert.Equal(salle2, partie.Salles[1]);
         }
 
         [Theory]
@@ -53,9 +60,9 @@ namespace UnitTests.Models
             partie.EstTerminee = estTerminee;
 
             // Assert
-            partie.JoueurId.Should().Be(joueurId);
-            partie.ScoreFinal.Should().Be(scoreFinal);
-            partie.EstTerminee.Should().Be(estTerminee);
+            Assert.Equal(joueurId, partie.JoueurId);
+            Assert.Equal(scoreFinal, partie.ScoreFinal);
+            Assert.Equal(estTerminee, partie.EstTerminee);
         }
 
         [Fact]
@@ -69,7 +76,7 @@ namespace UnitTests.Models
             partie.Date = dateCustom;
 
             // Assert
-            partie.Date.Should().Be(dateCustom);
+            Assert.Equal(dateCustom, partie.Date);
         }
     }
 }

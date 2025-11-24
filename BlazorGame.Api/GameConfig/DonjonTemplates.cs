@@ -1,7 +1,7 @@
 namespace BlazorGame.Api.GameConfig;
 
 // Type qui décrit un modèle de donjon
-internal record DonjonTemplate(
+public record DonjonTemplate(
     string Nom,
     string Description,
     int MinSalles,

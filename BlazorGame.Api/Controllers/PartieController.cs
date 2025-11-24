@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Models;
+using BlazorGame.Domain;
 using BlazorGame.Api.Data;
 using BlazorGame.Api.GameConfig;
 
@@ -14,9 +14,10 @@ namespace BlazorGame.Api.Controllers
         private readonly Random _random = new();
         private readonly IReadOnlyList<DonjonTemplate> _donjonTemplates = DonjonTemplates.All;
 
-        public PartieController(AventureDbContext context)
+       public PartieController(AventureDbContext context, IReadOnlyList<DonjonTemplate>? templates = null)
         {
             _context = context;
+            _donjonTemplates = templates ?? DonjonTemplates.All;
         }
 
         // POST: api/Partie/demarrer?joueurId=xxxxx
