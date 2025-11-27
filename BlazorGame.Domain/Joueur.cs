@@ -22,4 +22,6 @@ public class Joueur
     public DateTime DerniereConnexion { get; set; } = DateTime.UtcNow;
 
     public bool PeutReprendrePartie { get; set; }//True si une partie est en cours
+
+    public bool EstActif { get; set; } = true; // Admin: permet de désactiver un joueur sans le supprimer
 }
