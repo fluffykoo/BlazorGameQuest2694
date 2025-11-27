@@ -5,79 +5,488 @@
 
 <PageTitle>Admin</PageTitle>
 
-<div class="container mt-4">
-    <h1>Administration</h1>
-    <p class="text-muted">Vue rapide sur les joueurs, scores et actions admin.</p>
-
-    <div class="d-flex gap-2 mb-3">
-        <button class="btn btn-primary btn-sm" @onclick="Charger">
-            <span class="bi bi-arrow-clockwise"></span> Rafraîchir
-        </button>
-        <a class="btn btn-outline-secondary btn-sm" href="@exportUrl" download="joueurs.json">
-            <span class="bi bi-download"></span> Export JSON
-        </a>
+<div class="container mt-4 admin-panel">
+    <div class="admin-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="admin-title">Administration</h1>
+            <p class="admin-subtitle">Pilotage des joueurs, parties et scores du donjon.</p>
+        </div>
+        <div class="btn-toolbar gap-2">
+            <button class="btn btn-admin-primary btn-sm" @onclick="Charger">
+                <span class="bi bi-arrow-clockwise me-1"></span> Rafraîchir
+            </button>
+            <a class="btn btn-admin-ghost btn-sm" href="@exportUrl" download="joueurs.json">
+                <span class="bi bi-download me-1"></span> Export JSON
+            </a>
+        </div>
     </div>
 
     @if (isLoading)
     {
-        <p>Chargement...</p>
+        <div class="admin-loading d-flex align-items-center gap-2">
+            <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+            <span>Chargement des données...</span>
+        </div>
     }
     else if (!string.IsNullOrEmpty(message))
     {
-        <div class="alert alert-warning">@message</div>
+        <div class="alert alert-warning admin-alert">@message</div>
     }
     else
     {
-        <table class="table table-sm table-striped align-middle">
-            <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Email</th>
-                    <th>Score</th>
-                    <th>Parties</th>
-                    <th>Statut</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var j in joueurs)
-                {
-                    <tr>
-                        <td>@j.Nom</td>
-                        <td>@j.Mail</td>
-                        <td>@j.ScoreTotal</td>
-                        <td>@j.PartiesTerminees</td>
-                        <td>
-                            @if (j.EstActif)
-                            {
-                                <span class="badge bg-success">Actif</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Désactivé</span>
-                            }
-                        </td>
-                        <td class="text-end">
-                            <button class="btn btn-outline-warning btn-sm" @onclick="() => Toggle(j.Id)">
-                                @(j.EstActif ? "Désactiver" : "Activer")
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <!-- Cartes de stats -->
+        <div class="row row-cols-1 row-cols-md-4 g-3 mb-4">
+            <div class="col">
+                <div class="card stats-card stats-card-green shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stats-label">Joueurs actifs</div>
+                                <div class="stats-value">@joueursActifs / @joueurs.Count</div>
+                            </div>
+                            <span class="stats-icon bi bi-person-check"></span>
+                        </div>
+                        <div class="stats-extra">Inactifs : @joueursInactifs</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card stats-card stats-card-blue shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stats-label">Parties</div>
+                                <div class="stats-value">@parties.Count</div>
+                            </div>
+                            <span class="stats-icon bi bi-controller"></span>
+                        </div>
+                        <div class="stats-extra">Terminées : @partiesTerminees</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card stats-card stats-card-purple shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stats-label">Score cumulé</div>
+                                <div class="stats-value">@scoreTotal</div>
+                            </div>
+                            <span class="stats-icon bi bi-bar-chart-line"></span>
+                        </div>
+                        <div class="stats-extra">Meilleur : @scoreMax</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card stats-card stats-card-gold shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stats-label">Classement</div>
+                                <div class="stats-value">@topJoueur</div>
+                            </div>
+                            <span class="stats-icon bi bi-trophy"></span>
+                        </div>
+                        <div class="stats-extra">Top 1 • @topScore pts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grilles joueurs / parties -->
+        <div class="row g-4">
+            <div class="col-12 col-xl-6">
+                <div class="card admin-card shadow-sm h-100">
+                    <div class="card-header admin-card-header d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bi bi-people-fill"></span>
+                            <strong>Joueurs</strong>
+                        </div>
+                        <span class="small text-muted">Activation / désactivation</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive admin-table-wrapper">
+                            <table class="table table-sm align-middle mb-0 admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Email</th>
+                                        <th>Score</th>
+                                        <th>Parties</th>
+                                        <th>Statut</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var j in joueurs.OrderByDescending(j => j.ScoreTotal))
+                                    {
+                                        <tr>
+                                            <td>@j.Nom</td>
+                                            <td class="text-muted small">@j.Mail</td>
+                                            <td>@j.ScoreTotal</td>
+                                            <td>@j.PartiesTerminees</td>
+                                            <td>
+                                                @if (j.EstActif)
+                                                {
+                                                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">
+                                                        Actif
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                                        Désactivé
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                <button class="btn btn-outline-warning btn-sm" @onclick="() => Toggle(j.Id)">
+                                                    @(j.EstActif ? "Désactiver" : "Activer")
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-6">
+                <div class="card admin-card shadow-sm h-100">
+                    <div class="card-header admin-card-header d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bi bi-joystick"></span>
+                            <strong>Parties</strong>
+                        </div>
+                        <span class="small text-muted">Cliquer pour voir le détail des salles</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive admin-table-wrapper">
+                            <table class="table table-sm align-middle mb-0 admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Joueur</th>
+                                        <th>Donjon</th>
+                                        <th>Score</th>
+                                        <th>Salles</th>
+                                        <th>Date</th>
+                                        <th>Statut</th>
+                                        <th class="text-end"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in parties.OrderByDescending(p => p.Date))
+                                    {
+                                        var actif = p.Id == partieSelectionnee?.Id;
+                                        <tr class="@(actif ? "row-selected" : string.Empty)">
+                                            <td>@p.JoueurNom</td>
+                                            <td class="text-muted small">@p.DonjonNom</td>
+                                            <td>@p.ScoreFinal</td>
+                                            <td>@p.Salles.Count</td>
+                                            <td>@p.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                @if (p.EstTerminee)
+                                                {
+                                                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">
+                                                        Terminée
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle">
+                                                        En cours
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                <button class="btn btn-outline-primary btn-sm" @onclick="() => SelectPartie(p)">
+                                                    Voir salles
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (partieSelectionnee != null)
+        {
+            <div class="card admin-card shadow-sm mt-4">
+                <div class="card-header admin-card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="bi bi-map-fill"></span>
+                        <strong>Salles de la partie @partieSelectionnee.Id.ToString().Substring(0, 8)</strong>
+                    </div>
+                    <span class="small text-muted">
+                        @partieSelectionnee.JoueurNom • @partieSelectionnee.DonjonNom
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive admin-table-wrapper">
+                        <table class="table table-sm align-middle mb-0 admin-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Description</th>
+                                    <th>Niveau</th>
+                                    <th>Monstre</th>
+                                    <th>Visité</th>
+                                    <th>Choix</th>
+                                    <th>Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in partieSelectionnee.Salles.OrderBy(s => s.Position))
+                                {
+                                    <tr>
+                                        <td>@s.Position</td>
+                                        <td>@s.Description</td>
+                                        <td>@s.Niveau</td>
+                                        <td class="text-muted small">@s.NomMonstre (@s.PvMonstre PV / @s.ForceMonstre ATQ)</td>
+                                        <td>
+                                            @if (s.EstVisitee)
+                                            {
+                                                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">
+                                                    Oui
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                                    Non
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>@(string.IsNullOrWhiteSpace(s.ChoixFait) ? "-" : s.ChoixFait)</td>
+                                        <td>@s.Points</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
     }
 </div>
 
+<style>
+    .admin-panel {
+        color: #f5f5ff;
+    }
+
+    .admin-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 0.75rem;
+    }
+
+    .admin-title {
+        font-family: "Cinzel", "Times New Roman", serif;
+        font-size: 2.1rem;
+        letter-spacing: 0.04em;
+    }
+
+    .admin-subtitle {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+        color: #c0c4e0;
+    }
+
+    .btn-admin-primary {
+        background: linear-gradient(135deg, #3b82f6, #a855f7);
+        border: none;
+        color: #fff;
+        font-weight: 500;
+        padding-inline: 0.9rem;
+    }
+
+    .btn-admin-primary:hover {
+        background: linear-gradient(135deg, #2563eb, #9333ea);
+        color: #fff;
+    }
+
+    .btn-admin-ghost {
+        border-color: rgba(255, 255, 255, 0.25);
+        color: #e5e7ff;
+        background: rgba(15, 23, 42, 0.7);
+    }
+
+    .btn-admin-ghost:hover {
+        background: rgba(15, 23, 42, 0.95);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: #fff;
+    }
+
+    .admin-loading {
+        color: #e5e7ff;
+        font-size: 0.9rem;
+    }
+
+    .admin-alert {
+        background: rgba(234, 179, 8, 0.12);
+        border-color: rgba(234, 179, 8, 0.6);
+        color: #facc15;
+    }
+
+    /* Cartes de stats */
+    .stats-card {
+        border-radius: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #f9fafb;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stats-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.18), transparent 55%);
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .stats-card-green {
+        background: radial-gradient(circle at top left, #16a34a, #052e16);
+    }
+
+    .stats-card-blue {
+        background: radial-gradient(circle at top left, #2563eb, #020617);
+    }
+
+    .stats-card-purple {
+        background: radial-gradient(circle at top left, #7c3aed, #1e1b4b);
+    }
+
+    .stats-card-gold {
+        background: radial-gradient(circle at top left, #eab308, #422006);
+    }
+
+    .stats-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        opacity: 0.85;
+    }
+
+    .stats-value {
+        font-size: 1.9rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+    }
+
+    .stats-extra {
+        font-size: 0.8rem;
+        opacity: 0.9;
+        margin-top: 0.4rem;
+    }
+
+    .stats-icon {
+        font-size: 1.6rem;
+        opacity: 0.9;
+    }
+
+    /* Cartes principales / tables */
+    .admin-card {
+        background: rgba(15, 23, 42, 0.95);
+        border-radius: 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        color: #e5e7eb;
+    }
+
+    .admin-card-header {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 64, 175, 0.9));
+        color: #f9fafb;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+        font-size: 0.9rem;
+    }
+
+    .admin-card-header .bi {
+        font-size: 1rem;
+        color: #facc15;
+    }
+
+    .admin-table-wrapper {
+        max-height: 380px;
+        overflow-y: auto;
+    }
+
+    .admin-table thead {
+        background: rgba(15, 23, 42, 0.98);
+        color: #e5e7ff;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .admin-table thead th {
+        border-bottom-color: rgba(148, 163, 184, 0.6);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .admin-table tbody tr {
+        background: rgba(15, 23, 42, 0.88);
+        color: #e5e7eb;
+    }
+
+    .admin-table tbody tr:nth-child(even) {
+        background: rgba(17, 24, 39, 0.9);
+    }
+
+    .admin-table tbody tr:hover {
+        background: rgba(30, 64, 175, 0.35);
+    }
+
+    .admin-table td,
+    .admin-table th {
+        border-color: rgba(55, 65, 81, 0.7);
+    }
+
+    .row-selected {
+        box-shadow: inset 3px 0 0 #fbbf24;
+        background: rgba(251, 191, 36, 0.09) !important;
+    }
+
+    .row-selected td {
+        border-top-color: rgba(251, 191, 36, 0.35);
+        border-bottom-color: rgba(251, 191, 36, 0.35);
+    }
+
+    .admin-table .badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.6rem;
+    }
+</style>
+
 @code {
     private List<AdminJoueurDto> joueurs = new();
+    private List<PartieAdminDto> parties = new();
+    private PartieAdminDto? partieSelectionnee;
+
     private bool isLoading = true;
     private string? message;
     private string exportUrl = string.Empty;
 
+    private int joueursActifs => joueurs.Count(j => j.EstActif);
+    private int joueursInactifs => joueurs.Count(j => !j.EstActif);
+    private int partiesTerminees => parties.Count(p => p.EstTerminee);
+    private int scoreTotal => joueurs.Sum(j => j.ScoreTotal);
+    private int scoreMax => joueurs.Any() ? joueurs.Max(j => j.ScoreTotal) : 0;
+    private string topJoueur => joueurs.OrderByDescending(j => j.ScoreTotal).FirstOrDefault()?.Nom ?? "N/A";
+    private int topScore => joueurs.OrderByDescending(j => j.ScoreTotal).FirstOrDefault()?.ScoreTotal ?? 0;
+
     protected override async Task OnInitializedAsync()
     {
-        exportUrl = new Uri(Http.BaseAddress, "api/Joueurs/export").ToString();
+        exportUrl = new Uri(Http.BaseAddress ?? new Uri("https://localhost"), "api/Joueurs/export").ToString();
         await Charger();
     }
 
@@ -86,17 +495,26 @@
         try
         {
             isLoading = true;
-            var data = await Http.GetFromJsonAsync<List<AdminJoueurDto>>("api/Joueurs/classement-admin");
-            joueurs = data ?? new();
+            var joueursData = await Http.GetFromJsonAsync<List<AdminJoueurDto>>("api/Joueurs/classement-admin") ?? new();
+            var partiesData = await Http.GetFromJsonAsync<List<ApiPartie>>("api/Partie") ?? new();
+
+            joueurs = joueursData;
+            parties = partiesData.Select(MapPartie).ToList();
+            partieSelectionnee = parties.FirstOrDefault();
         }
         catch (Exception ex)
         {
-            message = $"Erreur chargement joueurs : {ex.Message}";
+            message = $"Erreur chargement admin : {ex.Message}";
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private void SelectPartie(PartieAdminDto partie)
+    {
+        partieSelectionnee = partie;
     }
 
     private async Task Toggle(Guid id)
@@ -111,5 +529,91 @@
         {
             message = $"Impossible de changer le statut : {ex.Message}";
         }
+    }
+
+    private PartieAdminDto MapPartie(ApiPartie p)
+    {
+        return new PartieAdminDto
+        {
+            Id = p.Id,
+            JoueurId = p.JoueurId,
+            JoueurNom = p.Joueur?.Nom ?? "(joueur ?)",
+            DonjonNom = p.Donjon?.Nom ?? "(donjon ?)",
+            ScoreFinal = p.ScoreFinal,
+            EstTerminee = p.EstTerminee,
+            Date = p.Date,
+            Salles = p.Salles?.Select(MapSalle).ToList() ?? new()
+        };
+    }
+
+    private SalleAdminDto MapSalle(ApiSalle s)
+    {
+        return new SalleAdminDto
+        {
+            Id = s.Id,
+            Position = s.Position,
+            Description = s.Description,
+            Niveau = NiveauLabel(s.Niveau),
+            EstVisitee = s.EstVisitee,
+            NomMonstre = s.NomMonstre,
+            PvMonstre = s.PvMonstre,
+            ForceMonstre = s.ForceMonstre,
+            ChoixFait = s.ChoixFait?.ToString() ?? string.Empty,
+            Points = s.Resultat?.Points ?? 0
+        };
+    }
+
+    private string NiveauLabel(int niveau) => niveau switch
+    {
+        0 => "Facile",
+        1 => "Moyen",
+        2 => "Difficile",
+        _ => "?"
+    };
+
+    // DTOs API utilisés pour le mapping
+    private class ApiPartie
+    {
+        public Guid Id { get; set; }
+        public Guid JoueurId { get; set; }
+        public ApiJoueur? Joueur { get; set; }
+        public Guid DonjonId { get; set; }
+        public ApiDonjon? Donjon { get; set; }
+        public int ScoreFinal { get; set; }
+        public bool EstTerminee { get; set; }
+        public DateTime Date { get; set; }
+        public List<ApiSalle> Salles { get; set; } = new();
+    }
+
+    private class ApiJoueur
+    {
+        public Guid Id { get; set; }
+        public string Nom { get; set; } = string.Empty;
+        public string Mail { get; set; } = string.Empty;
+    }
+
+    private class ApiDonjon
+    {
+        public Guid Id { get; set; }
+        public string Nom { get; set; } = string.Empty;
+    }
+
+    private class ApiSalle
+    {
+        public Guid Id { get; set; }
+        public int Position { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public int Niveau { get; set; }
+        public bool EstVisitee { get; set; }
+        public string NomMonstre { get; set; } = string.Empty;
+        public int PvMonstre { get; set; }
+        public int ForceMonstre { get; set; }
+        public int? ChoixFait { get; set; }
+        public ApiActionResult? Resultat { get; set; }
+    }
+
+    private class ApiActionResult
+    {
+        public int Points { get; set; }
     }
 }
