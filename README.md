@@ -286,11 +286,10 @@ Swagger est accessible à :
 Tous les endpoints CRUD ont été testés avec succès.  
 Les requêtes POST créent bien des entrées visibles dans PostgreSQL (via Docker).
 
-
----
 </details>
 ---
-<details open>
+
+<details>
 <summary>Version 3 – Mise en place de la base de données (PostgreSQL)</summary>
 
 ## Structure du projet (Version 3)
@@ -450,4 +449,39 @@ Ouvrir ensuite le client sur l’URL indiquée par `dotnet run` (par défaut `ht
 ---
 </details>
 
+---
+<details open>
+<summary>Version 4 – Tableau de bord admin, classement et exports</summary>
+
+## Fonctionnalités principales
+- **Classement général** : liste des joueurs actifs avec score cumulé et parties terminées.
+- **Tableau de bord admin** :
+  - Statistiques synthétiques (actifs/inactifs, parties, score cumulé, top joueur).
+  - Gestion des joueurs (activation/désactivation).
+  - Liste des parties (score, statut, date) et détail des salles pour la partie sélectionnée.
+  - Export JSON des joueurs (nom, mail, score, parties jouées, statut).
+- **Filtrage joueurs inactifs** : non visibles dans le classement public, démarrage de partie refusé pour un joueur désactivé.
+- **Swagger/Postman** : endpoints Joueurs/Parties/Salles exposés via l’API.
+
+## Endpoints notables (API)
+- `GET api/Joueurs/classement` : classement public (actifs uniquement).
+- `GET api/Joueurs/classement-admin` : classement complet (actifs/inactifs) pour l’admin.
+- `PATCH api/Joueurs/{id}/toggle` : activer/désactiver un joueur.
+- `GET api/Joueurs/export` : export JSON des joueurs (nom, mail, score, parties, statut).
+- `GET api/Partie` : parties avec Donjon/Joueur/Salles (pour le dashboard).
+- `PATCH api/Partie/{id}/terminer` et `PATCH api/Salle/{id}/action` : mettent à jour les scores et recalculent le score total du joueur.
+
+## UI Blazor (Client)
+- Page **/classement** : consomme `api/Joueurs/classement`, affiche score/parties/dernière connexion.
+- Page **/admin** :
+  - Cartes de stats (actifs, parties, score cumulé, top joueur).
+  - Tableau des joueurs (score, parties, statut, toggle actif/inactif, export JSON).
+  - Tableau des parties + “Voir salles” pour afficher le détail des salles et choix/actions.
+  - Styles dédiés pour lisibilité (fonds contrastés, badges statut).
+
+## Modèle de données
+- `Joueur.EstActif` (bool) : permet de désactiver un joueur sans le supprimer.
+- Recalcul du `ScoreTotal` à la fin d’une partie et sur la dernière salle visitée.
+
+</details>
 
