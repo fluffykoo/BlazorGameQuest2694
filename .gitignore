@@ -169,6 +169,11 @@ AutoTest.Net/
 # Web workbench (sass)
 .sass-cache/
 
+# Local test/coverage outputs
+.dotnet/
+TestResults/
+coverage/
+
 # Installshield output folder
 [Ee]xpress/
 
