@@ -15,9 +15,9 @@ namespace BlazorGame.Api.Controllers
             _context = context;
         }
 
-        //GET : api/joueurs: renvoie la liste complète des joueurs
+        //GET : api/joueurs: renvoie la liste des joueurs actifs
         [HttpGet]
-        public IActionResult GetAll() => Ok(_context.Joueurs.ToList());
+        public IActionResult GetAll() => Ok(_context.Joueurs.Where(j => j.EstActif).ToList());
 
         [HttpGet("classement")]
         public IActionResult GetClassement()
@@ -44,6 +44,40 @@ namespace BlazorGame.Api.Controllers
                         PartiesJouees = g.Parties,
                         j.DerniereConnexion
                     })
+                .Where(x => x.EstActif)
+                .OrderByDescending(x => x.ScoreTotal)
+                .ThenBy(x => x.Nom)
+                .ToList();
+
+            return Ok(classement);
+        }
+
+        // Classement complet pour l'admin (actifs et inactifs)
+        [HttpGet("classement-admin")]
+        public IActionResult GetClassementAdmin()
+        {
+            var classement = _context.Parties
+                .Where(p => p.EstTerminee)
+                .GroupBy(p => p.JoueurId)
+                .Select(g => new
+                {
+                    JoueurId = g.Key,
+                    Score = g.Sum(p => p.ScoreFinal),
+                    Parties = g.Count()
+                })
+                .Join(_context.Joueurs,
+                    g => g.JoueurId,
+                    j => j.Id,
+                    (g, j) => new
+                    {
+                        j.Id,
+                        j.Nom,
+                        j.Mail,
+                        j.EstActif,
+                        ScoreTotal = g.Score,
+                        PartiesTerminees = g.Parties,
+                        j.DerniereConnexion
+                    })
                 .OrderByDescending(x => x.ScoreTotal)
                 .ThenBy(x => x.Nom)
                 .ToList();
@@ -52,10 +86,9 @@ namespace BlazorGame.Api.Controllers
         }
 
         [HttpGet("export")]
-        public IActionResult ExportCsv()
+        public IActionResult ExportJson()
         {
-            var lignes = new List<string> { "Id;Nom;Mail;ScoreTotal;PartiesTerminees;DerniereConnexion" };
-            var data = _context.Parties
+            var stats = _context.Parties
                 .Where(p => p.EstTerminee)
                 .GroupBy(p => p.JoueurId)
                 .Select(g => new
@@ -66,17 +99,27 @@ namespace BlazorGame.Api.Controllers
                 })
                 .ToDictionary(x => x.JoueurId, x => x);
 
-            foreach (var joueur in _context.Joueurs.ToList())
-            {
-                data.TryGetValue(joueur.Id, out var info);
-                var score = info?.Score ?? 0;
-                var parties = info?.Parties ?? 0;
-                lignes.Add($"{joueur.Id};{joueur.Nom};{joueur.Mail};{score};{parties};{joueur.DerniereConnexion:O}");
-            }
+            var payload = _context.Joueurs
+                .ToList() // matérialise pour pouvoir utiliser TryGetValue
+                .Select(j =>
+                {
+                    stats.TryGetValue(j.Id, out var info);
+                    var score = info?.Score ?? 0;
+                    var parties = info?.Parties ?? 0;
+                    return new
+                    {
+                        j.Nom,
+                        j.Mail,
+                        ScoreTotal = score,
+                        PartiesJouees = parties,
+                        j.EstActif
+                    };
+                })
+                .ToList();
 
-            var csv = string.Join(Environment.NewLine, lignes);
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
-            return File(bytes, "text/csv", "joueurs.csv");
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            return File(bytes, "application/json; charset=utf-8", "joueurs.json");
         }
 
         // GET : api/joueurs/{id} : renvoie un joueur par son Id

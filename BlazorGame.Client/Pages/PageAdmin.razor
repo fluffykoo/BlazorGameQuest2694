@@ -1,5 +1,6 @@
 @page "/admin"
 @using System.Net.Http.Json
+@using BlazorGame.Client.Models
 @inject HttpClient Http
 
 <PageTitle>Admin</PageTitle>
@@ -12,8 +13,8 @@
         <button class="btn btn-primary btn-sm" @onclick="Charger">
             <span class="bi bi-arrow-clockwise"></span> Rafraîchir
         </button>
-        <a class="btn btn-outline-secondary btn-sm" href="api/Joueurs/export" download>
-            <span class="bi bi-download"></span> Export CSV
+        <a class="btn btn-outline-secondary btn-sm" href="@exportUrl" download="joueurs.json">
+            <span class="bi bi-download"></span> Export JSON
         </a>
     </div>
 
@@ -72,9 +73,11 @@
     private List<AdminJoueurDto> joueurs = new();
     private bool isLoading = true;
     private string? message;
+    private string exportUrl = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
+        exportUrl = new Uri(Http.BaseAddress, "api/Joueurs/export").ToString();
         await Charger();
     }
 
@@ -83,7 +86,7 @@
         try
         {
             isLoading = true;
-            var data = await Http.GetFromJsonAsync<List<AdminJoueurDto>>("api/Joueurs/classement");
+            var data = await Http.GetFromJsonAsync<List<AdminJoueurDto>>("api/Joueurs/classement-admin");
             joueurs = data ?? new();
         }
         catch (Exception ex)
@@ -109,14 +112,4 @@
             message = $"Impossible de changer le statut : {ex.Message}";
         }
     }
-}
-
-public class AdminJoueurDto
-{
-    public Guid Id { get; set; }
-    public string Nom { get; set; } = string.Empty;
-    public string Mail { get; set; } = string.Empty;
-    public int ScoreTotal { get; set; }
-    public int PartiesTerminees { get; set; }
-    public bool EstActif { get; set; }
 }

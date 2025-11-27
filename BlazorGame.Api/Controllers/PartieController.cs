@@ -33,6 +33,12 @@ namespace BlazorGame.Api.Controllers
 
             try
             {
+                var joueur = await _context.Joueurs.FindAsync(joueurId);
+                if (joueur == null)
+                    return NotFound("Joueur introuvable.");
+                if (!joueur.EstActif)
+                    return BadRequest("Joueur désactivé.");
+
                 var partieCreee = await _donjonGenerator.DemarrerPartieAsync(joueurId, cancellationToken);
                 return Ok(partieCreee);
             }
