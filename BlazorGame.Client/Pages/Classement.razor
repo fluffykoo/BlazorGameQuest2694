@@ -1,5 +1,4 @@
 @page "/classement"
-@using BlazorGame.Domain
 @using System.Net.Http.Json
 @inject HttpClient Http
 
@@ -28,6 +27,7 @@
                     <th>#</th>
                     <th>Nom</th>
                     <th>Score total</th>
+                    <th>Parties</th>
                     <th>Dernière connexion</th>
                 </tr>
             </thead>
@@ -38,6 +38,7 @@
                         <td>@tuple.Index</td>
                         <td>@tuple.Joueur.Nom</td>
                         <td>@tuple.Joueur.ScoreTotal</td>
+                        <td>@tuple.Joueur.PartiesTerminees</td>
                         <td>@tuple.Joueur.DerniereConnexion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                     </tr>
                 }
@@ -47,7 +48,7 @@
 </div>
 
 @code {
-    private List<Joueur> joueurs = new();
+    private List<ClassementEntry> joueurs = new();
     private bool isLoading = true;
     private string? message;
 
@@ -55,11 +56,8 @@
     {
         try
         {
-            var data = await Http.GetFromJsonAsync<List<Joueur>>("api/Joueurs");
-            joueurs = data?
-                .OrderByDescending(j => j.ScoreTotal)
-                .ThenBy(j => j.Nom)
-                .ToList() ?? new();
+            var data = await Http.GetFromJsonAsync<List<ClassementEntry>>("api/Joueurs/classement");
+            joueurs = data ?? new();
         }
         catch (Exception ex)
         {
@@ -70,4 +68,14 @@
             isLoading = false;
         }
     }
+}
+
+public class ClassementEntry
+{
+    public Guid Id { get; set; }
+    public string Nom { get; set; } = string.Empty;
+    public string Mail { get; set; } = string.Empty;
+    public int ScoreTotal { get; set; }
+    public int PartiesTerminees { get; set; }
+    public DateTime DerniereConnexion { get; set; }
 }
