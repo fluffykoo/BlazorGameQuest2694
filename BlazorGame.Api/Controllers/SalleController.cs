@@ -101,6 +101,7 @@ namespace BlazorGame.Api.Controllers
             var salle = await _context.Salles
                 .Include(s => s.Partie)
                 .ThenInclude(p => p!.Salles)
+                .Include(s => s.Partie)!.ThenInclude(p => p!.Joueur)
                 .FirstOrDefaultAsync(s => s.Id == id);
 
             if (salle == null || salle.Partie == null)
@@ -172,6 +173,7 @@ namespace BlazorGame.Api.Controllers
             {
                 salle.Partie.EstTerminee = true;
                 resultat.Message += " (FIN DU DONJON)";
+                await RecalculerScoreJoueur(salle.Partie.JoueurId);
             }
 
             await _context.SaveChangesAsync();
@@ -195,6 +197,18 @@ namespace BlazorGame.Api.Controllers
         private bool SalleExists(Guid id)
         {
             return _context.Salles.Any(s => s.Id == id);
+        }
+
+        private async Task RecalculerScoreJoueur(Guid joueurId)
+        {
+            var joueur = await _context.Joueurs.FindAsync(joueurId);
+            if (joueur == null) return;
+
+            var total = await _context.Parties
+                .Where(p => p.JoueurId == joueurId && p.EstTerminee)
+                .SumAsync(p => (int?)p.ScoreFinal) ?? 0;
+
+            joueur.ScoreTotal = total;
         }
     }
 }

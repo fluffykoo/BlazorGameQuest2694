@@ -162,6 +162,7 @@ namespace BlazorGame.Api.Controllers
             partie.EstTerminee = true;
             partie.ScoreFinal = request.ScoreFinal;
 
+            await RecalculerScoreJoueur(partie.JoueurId);
             await _context.SaveChangesAsync();
             return NoContent();
         }
@@ -169,6 +170,18 @@ namespace BlazorGame.Api.Controllers
         private bool PartieExists(Guid id)
         {
             return _context.Parties.Any(e => e.Id == id);
+        }
+
+        private async Task RecalculerScoreJoueur(Guid joueurId)
+        {
+            var joueur = await _context.Joueurs.FindAsync(joueurId);
+            if (joueur == null) return;
+
+            var total = await _context.Parties
+                .Where(p => p.JoueurId == joueurId && p.EstTerminee)
+                .SumAsync(p => (int?)p.ScoreFinal) ?? 0;
+
+            joueur.ScoreTotal = total;
         }
     }
 }

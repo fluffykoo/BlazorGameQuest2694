@@ -28,6 +28,9 @@ public class AventureDbContext : DbContext
             .WithOne(p => p.Joueur)
             .HasForeignKey(p => p.JoueurId)
             .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Joueur>()
+            .Property(j => j.EstActif)
+            .HasDefaultValue(true);
 
         // Partie → Salles
         modelBuilder.Entity<Partie>()
