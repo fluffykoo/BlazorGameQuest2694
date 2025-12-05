@@ -106,7 +106,8 @@ dotnet run
   - Combat : Combattre (30 + 20 × niveau, défaite −15), Fuir (+5), Fouiller (+25 ou −10).
   - Coffre : Fouiller (trésor +40 ou piège −20), Fuir (0).
 - Fin de partie : score < 0 ⇒ mort ; dernière salle visitée ⇒ fin d’aventure.
-- Admin : export JSON/CSV des joueurs, reset joueur (supprime parties, remet score à 0), classement admin inclut joueurs sans parties.
+- Admin : export JSON/CSV des joueurs, reset joueur (supprime parties, remet score à 0), classement admin inclut joueurs sans parties, joueurs actifs/inactifs affichés.
+- Tests : 48 tests xUnit (API, domaine, contrôleurs). Couverture à étendre pour viser 80 % (admin/export/classement et éventuellement UI).
 
 ---
 <details>
