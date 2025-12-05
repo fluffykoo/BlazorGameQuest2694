@@ -112,48 +112,56 @@ namespace BlazorGame.Api.Controllers
 
             var resultat = new ActionResultat { Action = action };
 
+            bool isCombat = salle.ChoixPossible.Contains(ChoixAction.Combattre);
+            bool isCoffre = !isCombat && salle.ChoixPossible.Contains(ChoixAction.Fouiller);
+
             // Logique de jeu V3
             switch (action)
             {
                 case ChoixAction.Combattre:
-                    // 70 % de chance de victoire
                     resultat.Risque = 30;
                     bool victoire = _random.Next(100) >= resultat.Risque;
-
                     if (victoire)
                     {
-                        resultat.Points = 50 * (int)salle.Niveau;
+                        // base combat > 0 même en facile
+                        var baseGain = 30 + (20 * (int)salle.Niveau);
+                        resultat.Points = baseGain;
                         resultat.Message = $"Victoire ! Vous avez terrassé le {salle.NomMonstre}.";
                         salle.PvMonstre = 0;
                     }
                     else
                     {
-                        resultat.Points = 0;
+                        resultat.Points = -15;
                         resultat.Message = $"Échec... Le {salle.NomMonstre} vous a blessé.";
                     }
                     break;
 
                 case ChoixAction.Fuir:
                     resultat.Risque = 0;
-                    resultat.Points = 10;
-                    resultat.Message = "Vous avez fui prudemment et restez en vie.";
+                    resultat.Points = isCombat ? 5 : 0;
+                    resultat.Message = isCombat
+                        ? "Vous avez fui prudemment et restez en vie."
+                        : "Vous laissez le coffre derrière vous.";
                     break;
 
                 case ChoixAction.Fouiller:
-                    // 50 % de chance de trésor
-                    resultat.Risque = 50;
+                    resultat.Risque = isCoffre ? 50 : 50;
                     bool tresor = _random.Next(100) >= resultat.Risque;
 
                     if (tresor)
                     {
-                        resultat.Points = 30;
-                        resultat.Message = "Vous avez trouvé une potion rare !";
+                        resultat.Points = isCoffre ? 40 : 25;
+                        resultat.Message = isCoffre
+                            ? "Le coffre renferme un trésor !"
+                            : "Vous avez trouvé une potion rare !";
                     }
                     else
                     {
-                        resultat.Points = -10;
+                        resultat.Points = isCoffre ? -20 : -10;
                         resultat.EstPiege = true;
-                        resultat.Message = "C'était un piège ! Vous perdez des PV.";
+                        resultat.Message = isCoffre
+                            ? "C'était un piège ! Vous perdez des points."
+                            : "C'était un piège ! Vous perdez des PV.";
                     }
                     break;
             }
@@ -167,7 +175,7 @@ namespace BlazorGame.Api.Controllers
             salle.Partie.ScoreFinal += resultat.Points;
             resultat.ScoreTotal = salle.Partie.ScoreFinal;
 
-            if (salle.Partie.ScoreFinal <= 0)
+            if (salle.Partie.ScoreFinal < 0)
             {
                 salle.Partie.EstTerminee = true;
                 resultat.Message += " (Vous êtes mort)";

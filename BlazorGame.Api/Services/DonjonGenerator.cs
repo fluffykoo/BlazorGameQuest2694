@@ -75,8 +75,7 @@ public class DonjonGenerator : IDonjonGenerator
     {
         var typesMonstres = new[] { "Gobelin", "Orc", "Squelette", "Dragonnet" };
         var images = new[] { "goblin.png", "orc.png", "skeleton.png", "dragon.png" };
-
-        int index = _random.Next(typesMonstres.Length);
+        bool isCombat = _random.Next(100) >= 40; // 60 % combat, 40 % coffre
 
         var difficulte = position switch
         {
@@ -85,6 +84,31 @@ public class DonjonGenerator : IDonjonGenerator
             >= 5 => NiveauDifficulte.Difficile
         };
 
+        if (isCombat)
+        {
+            int index = _random.Next(typesMonstres.Length);
+
+            return new Salle
+            {
+                Id = Guid.NewGuid(),
+                PartieId = partieId,
+                DonjonId = donjonId,
+                Position = position,
+                EstVisitee = false,
+                NomMonstre = typesMonstres[index],
+                ImageMonstre = images[index],
+                PvMonstre = 8 + (position * 4),
+                ForceMonstre = 1 + (position * 2),
+                Niveau = difficulte,
+                Description = $"Salle {position} : un {typesMonstres[index]} vous attend...",
+                ChoixPossible = new List<ChoixAction>
+                {
+                    ChoixAction.Combattre,
+                    ChoixAction.Fuir
+                }
+            };
+        }
+
         return new Salle
         {
             Id = Guid.NewGuid(),
@@ -92,15 +116,14 @@ public class DonjonGenerator : IDonjonGenerator
             DonjonId = donjonId,
             Position = position,
             EstVisitee = false,
-            NomMonstre = typesMonstres[index],
-            ImageMonstre = images[index],
-            PvMonstre = 8 + (position * 4),
-            ForceMonstre = 1 + (position * 2),
+            NomMonstre = "Coffre mystérieux",
+            ImageMonstre = "chest.png",
+            PvMonstre = 0,
+            ForceMonstre = 0,
             Niveau = difficulte,
-            Description = $"Salle {position} : un {typesMonstres[index]} vous attend...",
+            Description = $"Salle {position} : un coffre poussiéreux vous intrigue...",
             ChoixPossible = new List<ChoixAction>
             {
-                ChoixAction.Combattre,
                 ChoixAction.Fouiller,
                 ChoixAction.Fuir
             }

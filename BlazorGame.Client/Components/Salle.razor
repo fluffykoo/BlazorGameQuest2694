@@ -68,17 +68,26 @@ else
             
             @if (actionFaite)
             {
+                @if (partieTerminee)
+                {
+                    <div class="alert alert-danger text-center">
+                        Fin de la partie : @messageResultat
+                    </div>
+                }
+
                 <div class="action-buttons">
-                    <button class="btn-action btn-next" @onclick="SalleSuivante">
-                        @if (currentSalle.Position >= totalSalles && totalSalles > 0)
-                        {
-                            <span>Finir l'Aventure !</span>
-                        }
-                        else
-                        {
+                    @if (!partieTerminee && currentSalle.Position < totalSalles)
+                    {
+                        <button class="btn-action btn-next" @onclick="SalleSuivante">
                             <span>Salle suivante >></span>
-                        }
-                    </button>
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn-action btn-next" @onclick="AllerScore">
+                            <span>Voir le score</span>
+                        </button>
+                    }
 
                     <button class="btn-action btn-flee" @onclick="RetourAuDonjon">
                         Revenir au donjon
@@ -125,6 +134,7 @@ else
     private BlazorGame.Domain.Salle? currentSalle;
     private string messageResultat = "Initialisation...";
     private bool actionFaite => currentSalle?.ChoixFait.HasValue ?? false;
+    private bool partieTerminee;
 
     private int totalSalles = 0;
 
@@ -189,8 +199,13 @@ else
             if (currentSalle.Resultat != null)
             {
                 var restant = totalSalles - currentSalle.Position;
-                if (restant <= 0)
+                partieTerminee = currentSalle.Resultat.ScoreTotal <= 0 || restant <= 0;
+                if (partieTerminee)
                 {
+                    messageResultat = currentSalle.Resultat.ScoreTotal <= 0
+                        ? "Vous êtes mort. Fin de la partie."
+                        : "Aventure terminée.";
+
                     // marque la partie comme terminée côté API
                     await Http.PatchAsJsonAsync(
                         $"api/Partie/{PartieId}/terminer",
@@ -209,6 +224,11 @@ else
     private void SalleSuivante()
     {
         Navigation.NavigateTo($"/salle/{PartieId}", forceLoad: true);
+    }
+
+    private void AllerScore()
+    {
+        Navigation.NavigateTo($"/score/{PartieId}", forceLoad: true);
     }
 
     private void RetourAuDonjon()

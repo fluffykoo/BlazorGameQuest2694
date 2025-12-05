@@ -167,7 +167,7 @@ public class SalleControllerTests : DbTestBase
         var resultat = Assert.IsType<ActionResultat>(okResult.Value);
 
         Assert.True(partie.EstTerminee);
-        Assert.True(resultat.ScoreTotal <= 0);
+        Assert.True(resultat.ScoreTotal < 0);
         Assert.Equal(partie.ScoreFinal, resultat.ScoreTotal);
         Assert.Equal(partie.ScoreFinal, context.Joueurs.Find(joueur.Id)!.ScoreTotal);
     }
