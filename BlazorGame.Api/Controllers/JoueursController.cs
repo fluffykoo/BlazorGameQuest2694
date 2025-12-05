@@ -126,6 +126,40 @@ namespace BlazorGame.Api.Controllers
             return File(bytes, "application/json; charset=utf-8", "joueurs.json");
         }
 
+        [HttpGet("export-csv")]
+        public IActionResult ExportCsv()
+        {
+            var stats = _context.Parties
+                .Where(p => p.EstTerminee)
+                .AsEnumerable()
+                .GroupBy(p => p.JoueurId)
+                .ToDictionary(g => g.Key, g => new { Score = g.Sum(p => p.ScoreFinal), Parties = g.Count() });
+
+            var joueurs = _context.Joueurs
+                .ToList()
+                .Select(j =>
+                {
+                    stats.TryGetValue(j.Id, out var info);
+                    var score = info?.Score ?? 0;
+                    var parties = info?.Parties ?? 0;
+                    return new
+                    {
+                        j.Nom,
+                        j.Mail,
+                        ScoreTotal = score,
+                        PartiesJouees = parties,
+                        j.EstActif
+                    };
+                })
+                .ToList();
+
+            var lines = new List<string> { "Nom;Mail;ScoreTotal;PartiesJouees;EstActif" };
+            lines.AddRange(joueurs.Select(j => $"{j.Nom};{j.Mail};{j.ScoreTotal};{j.PartiesJouees};{j.EstActif}"));
+            var csv = string.Join('\n', lines);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            return File(bytes, "text/csv; charset=utf-8", "joueurs.csv");
+        }
+
         // GET : api/joueurs/{id} : renvoie un joueur par son Id
         [HttpGet("{id}")]
         public IActionResult GetById(Guid id)
