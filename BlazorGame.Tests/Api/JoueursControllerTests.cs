@@ -10,11 +10,11 @@ using Xunit;
 
 namespace BlazorGame.Tests.Api;
 
-public class JoueursControllerTests : DbTestBase
-{
-    [Fact]
-    public void GetAll_ReturnsJoueurs()
+    public class JoueursControllerTests : DbTestBase
     {
+        [Fact]
+        public void GetAll_ReturnsJoueurs()
+        {
         using var context = NewContext();
         SeedBasicData(context);
         var controller = new JoueursController(context);
@@ -28,14 +28,14 @@ public class JoueursControllerTests : DbTestBase
     }
 
     [Fact]
-    public void GetById_ReturnsNotFound_WhenMissing()
-    {
-        using var context = NewContext();
-        var controller = new JoueursController(context);
+        public void GetById_ReturnsNotFound_WhenMissing()
+        {
+            using var context = NewContext();
+            var controller = new JoueursController(context);
 
-        var result = controller.GetById(Guid.NewGuid());
-        Assert.IsType<NotFoundResult>(result);
-    }
+            var result = controller.GetById(Guid.NewGuid());
+            Assert.IsType<NotFoundResult>(result);
+        }
 
     [Fact]
     public void Create_Update_Delete_Work()
@@ -59,11 +59,11 @@ public class JoueursControllerTests : DbTestBase
     }
 
     [Fact]
-    public void Reset_Joueur_SupprimePartiesEtRemetScore()
-    {
-        using var context = NewContext();
-        var joueur = new Joueur { Nom = "Reset", Mail = "r@test.com", ScoreTotal = 120 };
-        context.Joueurs.Add(joueur);
+        public void Reset_Joueur_SupprimePartiesEtRemetScore()
+        {
+            using var context = NewContext();
+            var joueur = new Joueur { Nom = "Reset", Mail = "r@test.com", ScoreTotal = 120 };
+            context.Joueurs.Add(joueur);
 
         var partie = new Partie { JoueurId = joueur.Id, DonjonId = Guid.NewGuid(), ScoreFinal = 50, EstTerminee = true };
         context.Parties.Add(partie);
@@ -80,5 +80,21 @@ public class JoueursControllerTests : DbTestBase
         Assert.False(refreshed.PeutReprendrePartie);
         Assert.Empty(context.Parties.Where(p => p.JoueurId == joueur.Id));
         Assert.Empty(context.Salles.Where(s => s.PartieId == partie.Id));
+    }
+
+    [Fact]
+    public void ClassementAdmin_InclutJoueursSansPartie()
+    {
+        using var context = NewContext();
+        var joueur = new Joueur { Nom = "Solo", Mail = "solo@test.com" };
+        context.Joueurs.Add(joueur);
+        context.SaveChanges();
+
+        var controller = new JoueursController(context);
+        var result = controller.GetClassementAdmin();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var list = Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value);
+
+        Assert.Contains(list, x => x.ToString()!.Contains("Solo"));
     }
 }

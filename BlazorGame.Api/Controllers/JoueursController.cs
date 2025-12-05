@@ -56,28 +56,31 @@ namespace BlazorGame.Api.Controllers
         [HttpGet("classement-admin")]
         public IActionResult GetClassementAdmin()
         {
-            var classement = _context.Parties
+            var stats = _context.Parties
                 .Where(p => p.EstTerminee)
                 .GroupBy(p => p.JoueurId)
-                .Select(g => new
+                .ToDictionary(
+                    g => g.Key,
+                    g => new { Score = g.Sum(p => p.ScoreFinal), Parties = g.Count() });
+
+            var classement = _context.Joueurs
+                .ToList() // matérialise pour TryGetValue
+                .Select(j =>
                 {
-                    JoueurId = g.Key,
-                    Score = g.Sum(p => p.ScoreFinal),
-                    Parties = g.Count()
-                })
-                .Join(_context.Joueurs,
-                    g => g.JoueurId,
-                    j => j.Id,
-                    (g, j) => new
+                    stats.TryGetValue(j.Id, out var info);
+                    var score = info?.Score ?? 0;
+                    var parties = info?.Parties ?? 0;
+                    return new
                     {
                         j.Id,
                         j.Nom,
                         j.Mail,
                         j.EstActif,
-                        ScoreTotal = g.Score,
-                        PartiesTerminees = g.Parties,
+                        ScoreTotal = score,
+                        PartiesTerminees = parties,
                         j.DerniereConnexion
-                    })
+                    };
+                })
                 .OrderByDescending(x => x.ScoreTotal)
                 .ThenBy(x => x.Nom)
                 .ToList();
