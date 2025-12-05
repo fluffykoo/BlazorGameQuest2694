@@ -166,6 +166,28 @@ namespace BlazorGame.Api.Controllers
             return Ok(new { joueur.Id, joueur.EstActif });
         }
 
+        // POST : api/joueurs/{id}/reset : supprime l'historique et remet le score à zéro
+        [HttpPost("{id}/reset")]
+        public IActionResult Reset(Guid id)
+        {
+            var joueur = _context.Joueurs.Find(id);
+            if (joueur == null) return NotFound();
+
+            var parties = _context.Parties.Where(p => p.JoueurId == id).ToList();
+            _context.Parties.RemoveRange(parties);
+
+            joueur.ScoreTotal = 0;
+            joueur.PeutReprendrePartie = false;
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                joueur.Id,
+                joueur.ScoreTotal,
+                PartiesSupprimees = parties.Count
+            });
+        }
+
         // DELETE : api/joueurs/{id} : supprime un joueur
         [HttpDelete("{id}")]
         public IActionResult Delete(Guid id)

@@ -144,6 +144,9 @@
                                                 <button class="btn btn-outline-warning btn-sm" @onclick="() => Toggle(j.Id)">
                                                     @(j.EstActif ? "Désactiver" : "Activer")
                                                 </button>
+                                                <button class="btn btn-outline-danger btn-sm ms-1" @onclick="() => Reset(j.Id)">
+                                                    Reset
+                                                </button>
                                             </td>
                                         </tr>
                                     }
@@ -528,6 +531,20 @@
         catch (Exception ex)
         {
             message = $"Impossible de changer le statut : {ex.Message}";
+        }
+    }
+
+    private async Task Reset(Guid id)
+    {
+        try
+        {
+            var response = await Http.PostAsync($"api/Joueurs/{id}/reset", null);
+            response.EnsureSuccessStatusCode();
+            await Charger();
+        }
+        catch (Exception ex)
+        {
+            message = $"Impossible de réinitialiser le joueur : {ex.Message}";
         }
     }
 

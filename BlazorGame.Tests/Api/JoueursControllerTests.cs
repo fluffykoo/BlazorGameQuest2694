@@ -57,4 +57,28 @@ public class JoueursControllerTests : DbTestBase
         Assert.IsType<NoContentResult>(delete);
         Assert.Empty(context.Joueurs);
     }
+
+    [Fact]
+    public void Reset_Joueur_SupprimePartiesEtRemetScore()
+    {
+        using var context = NewContext();
+        var joueur = new Joueur { Nom = "Reset", Mail = "r@test.com", ScoreTotal = 120 };
+        context.Joueurs.Add(joueur);
+
+        var partie = new Partie { JoueurId = joueur.Id, DonjonId = Guid.NewGuid(), ScoreFinal = 50, EstTerminee = true };
+        context.Parties.Add(partie);
+        context.Salles.Add(new Salle { PartieId = partie.Id, Position = 1 });
+        context.SaveChanges();
+
+        var controller = new JoueursController(context);
+
+        var response = controller.Reset(joueur.Id);
+        var ok = Assert.IsType<OkObjectResult>(response);
+
+        var refreshed = context.Joueurs.Find(joueur.Id)!;
+        Assert.Equal(0, refreshed.ScoreTotal);
+        Assert.False(refreshed.PeutReprendrePartie);
+        Assert.Empty(context.Parties.Where(p => p.JoueurId == joueur.Id));
+        Assert.Empty(context.Salles.Where(s => s.PartieId == partie.Id));
+    }
 }
