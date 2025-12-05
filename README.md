@@ -81,7 +81,7 @@ dotnet run
 | **Cas de test** | **Objectif** | **Données / Conditions** | **Résultat attendu** |
 |-----------------|---------------|---------------------------|----------------------|
 | Création d’une salle | Vérifier que la salle a une position, une description et un niveau | Créer une `Salle` | Champs renseignés (`Position`, `Description`, `Niveau`) |
-| Choix disponibles | Vérifier que les actions disponibles sont valides | Nouvelle salle | `ChoixPossible` contient Combattre, Fuir, Fouiller |
+| Choix disponibles | Vérifier que les actions disponibles sont valides | Nouvelle salle | `ChoixPossible` contient Combattre/Fuir ou Fouiller/Fuir selon le type |
 | Choix effectué | Vérifier que le joueur peut choisir une action | Affecter une valeur à `ChoixFait` | `ChoixFait` correspond à une des actions possibles |
 | Résultat d’action | Vérifier qu’un résultat est associé à l’action | Affecter un `Resultat` à une salle | `Resultat` non nul et cohérent |
 
@@ -96,6 +96,17 @@ dotnet run
 | Perte de points | Vérifier la pénalité sur une mauvaise action | Choix "Fouiller" → Piège | `Points` < 0 |
 | Détection de piège | Vérifier la valeur du booléen `EstPiege` | Action piégée | `EstPiege = true` |
 </details>
+
+---
+
+## Gameplay (V3/V4)
+
+- Types de salles : combats et coffres (au moins un coffre par donjon, majorité de combats).
+- Actions :
+  - Combat : Combattre (30 + 20 × niveau, défaite −15), Fuir (+5), Fouiller (+25 ou −10).
+  - Coffre : Fouiller (trésor +40 ou piège −20), Fuir (0).
+- Fin de partie : score < 0 ⇒ mort ; dernière salle visitée ⇒ fin d’aventure.
+- Admin : export JSON/CSV des joueurs, reset joueur (supprime parties, remet score à 0), classement admin inclut joueurs sans parties.
 
 ---
 <details>
@@ -484,4 +495,3 @@ Ouvrir ensuite le client sur l’URL indiquée par `dotnet run` (par défaut `ht
 - Recalcul du `ScoreTotal` à la fin d’une partie et sur la dernière salle visitée.
 
 </details>
-
