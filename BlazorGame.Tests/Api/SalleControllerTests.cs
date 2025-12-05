@@ -131,4 +131,44 @@ public class SalleControllerTests : DbTestBase
         var badPut = await controller.PutSalle(Guid.NewGuid(), salle);
         Assert.IsType<BadRequestResult>(badPut);
     }
+
+    [Fact]
+    public async Task ScoreNegatif_TerminePartie()
+    {
+        using var context = NewContext();
+        SeedBasicData(context);
+
+        var joueur = context.Joueurs.First();
+        var partie = new Partie
+        {
+            JoueurId = joueur.Id,
+            DonjonId = context.Donjons.First().Id,
+            ScoreFinal = -1000,
+            EstTerminee = false
+        };
+        context.Parties.Add(partie);
+
+        var salle = new Salle
+        {
+            Id = Guid.NewGuid(),
+            PartieId = partie.Id,
+            Position = 1,
+            Description = "Salle test",
+            Niveau = NiveauDifficulte.Facile,
+            ChoixPossible = new List<ChoixAction> { ChoixAction.Fouiller }
+        };
+        context.Salles.Add(salle);
+        await context.SaveChangesAsync();
+
+        var controller = new SalleController(context);
+        var actionResult = await controller.ExecuterAction(salle.Id, ChoixAction.Fouiller);
+
+        var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+        var resultat = Assert.IsType<ActionResultat>(okResult.Value);
+
+        Assert.True(partie.EstTerminee);
+        Assert.True(resultat.ScoreTotal <= 0);
+        Assert.Equal(partie.ScoreFinal, resultat.ScoreTotal);
+        Assert.Equal(partie.ScoreFinal, context.Joueurs.Find(joueur.Id)!.ScoreTotal);
+    }
 }

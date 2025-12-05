@@ -167,13 +167,22 @@ namespace BlazorGame.Api.Controllers
             salle.Partie.ScoreFinal += resultat.Points;
             resultat.ScoreTotal = salle.Partie.ScoreFinal;
 
-            // Détection de la dernière salle du donjon
-            var maxPosition = salle.Partie.Salles?.Max(s => s.Position) ?? salle.Position;
-            if (salle.Position >= maxPosition)
+            if (salle.Partie.ScoreFinal <= 0)
             {
                 salle.Partie.EstTerminee = true;
-                resultat.Message += " (FIN DU DONJON)";
+                resultat.Message += " (Vous êtes mort)";
                 await RecalculerScoreJoueur(salle.Partie.JoueurId);
+            }
+            else
+            {
+                // Détection de la dernière salle du donjon
+                var maxPosition = salle.Partie.Salles?.Max(s => s.Position) ?? salle.Position;
+                if (salle.Position >= maxPosition)
+                {
+                    salle.Partie.EstTerminee = true;
+                    resultat.Message += " (FIN DU DONJON)";
+                    await RecalculerScoreJoueur(salle.Partie.JoueurId);
+                }
             }
 
             await _context.SaveChangesAsync();
