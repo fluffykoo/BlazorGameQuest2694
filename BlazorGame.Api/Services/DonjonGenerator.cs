@@ -88,7 +88,7 @@ public class DonjonGenerator : IDonjonGenerator
             .Concat(Enumerable.Repeat(false, coffresVoulus)) // false = coffre
             .ToList();
 
-        // Shuffle
+       // Mélange aléatoire des types de salle
         for (int i = types.Count - 1; i > 0; i--)
         {
             int j = _random.Next(i + 1);
