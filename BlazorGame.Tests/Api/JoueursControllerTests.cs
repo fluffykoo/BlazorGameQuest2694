@@ -97,4 +97,28 @@ namespace BlazorGame.Tests.Api;
 
         Assert.Contains(list, x => x.ToString()!.Contains("Solo"));
     }
+
+    [Fact]
+    public void ExportCsv_RetourneFichierAvecJoueursEtScores()
+    {
+        using var context = NewContext();
+        SeedBasicData(context);
+
+        // Ajouter un joueur supplémentaire sans partie
+        var joueur = new Joueur { Nom = "Csv", Mail = "csv@test.com", ScoreTotal = 10, EstActif = true };
+        context.Joueurs.Add(joueur);
+        context.SaveChanges();
+
+        var controller = new JoueursController(context);
+
+        var result = controller.ExportCsv();
+        var file = Assert.IsType<FileContentResult>(result);
+
+        Assert.Equal("text/csv; charset=utf-8", file.ContentType);
+        Assert.Equal("joueurs.csv", file.FileDownloadName);
+
+        var csv = System.Text.Encoding.UTF8.GetString(file.FileContents);
+        Assert.Contains("Nom;Mail;ScoreTotal;PartiesJouees;EstActif", csv);
+        Assert.Contains("Csv;csv@test.com", csv);
+    }
 }
