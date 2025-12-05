@@ -55,4 +55,52 @@ public class DonjonGeneratorTests : DbTestBase
         Assert.Equal(partie.Donjon.NombreDeSalles, partie.Salles.Count);
         Assert.True(partie.Salles.Select(s => s.Position).OrderBy(p => p).SequenceEqual(Enumerable.Range(1, partie.Salles.Count)));
     }
+
+    [Fact]
+    public async Task DemarrerPartie_JoueurIdVide_DeclencheArgumentException()
+    {
+        using var context = NewContext();
+        var generator = new DonjonGenerator(context, new[] { new DonjonTemplate("T", "d", 1, 1) }, new Random(1));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => generator.DemarrerPartieAsync(Guid.Empty));
+    }
+
+    [Fact]
+    public async Task DemarrerPartie_JoueurAbsent_DeclencheInvalidOperationException()
+    {
+        using var context = NewContext();
+        var generator = new DonjonGenerator(context, new[] { new DonjonTemplate("T", "d", 1, 1) }, new Random(1));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => generator.DemarrerPartieAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task DemarrerPartie_GenereSallesAvecStatsEtDifficulte()
+    {
+        using var context = NewContext();
+        var joueur = new Joueur { Id = Guid.NewGuid(), Nom = "Hero", Mail = "hero@test.com" };
+        context.Joueurs.Add(joueur);
+        context.SaveChanges();
+
+        var template = new DonjonTemplate("Full", "desc", 5, 5);
+        var generator = new DonjonGenerator(context, new[] { template }, new Random(1));
+
+        var partie = await generator.DemarrerPartieAsync(joueur.Id);
+
+        Assert.Equal(5, partie.Salles.Count);
+        Assert.Equal(Enumerable.Range(1, 5), partie.Salles.Select(s => s.Position));
+        Assert.All(partie.Salles, s =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(s.NomMonstre));
+            Assert.False(string.IsNullOrWhiteSpace(s.ImageMonstre));
+            Assert.True(s.PvMonstre >= 12); // 8 + (pos * 4) min
+            Assert.True(s.ForceMonstre >= 3); // 1 + (pos * 2) min
+        });
+
+        Assert.Equal(NiveauDifficulte.Facile, partie.Salles[0].Niveau);
+        Assert.Equal(NiveauDifficulte.Facile, partie.Salles[1].Niveau);
+        Assert.Equal(NiveauDifficulte.Moyen, partie.Salles[2].Niveau);
+        Assert.Equal(NiveauDifficulte.Moyen, partie.Salles[3].Niveau);
+        Assert.Equal(NiveauDifficulte.Difficile, partie.Salles[4].Niveau);
+    }
 }

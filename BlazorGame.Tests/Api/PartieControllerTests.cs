@@ -69,4 +69,66 @@ public class PartieControllerTests : DbTestBase
         var result = await controller.DemarrerPartie(Guid.NewGuid(), System.Threading.CancellationToken.None);
         Assert.IsType<NotFoundObjectResult>(result.Result);
     }
+
+    [Fact]
+    public async Task DemarrerPartie_JoueurDesactive_RetourneBadRequest()
+    {
+        using var context = NewContext();
+        var joueur = new Joueur { Nom = "Dormant", Mail = "d@test.com", EstActif = false };
+        context.Joueurs.Add(joueur);
+        context.SaveChanges();
+
+        var controller = new PartieController(context, new FakeDonjonGenerator());
+
+        var result = await controller.DemarrerPartie(joueur.Id, System.Threading.CancellationToken.None);
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task DemarrerPartie_GenerateurLanceException_Retourne500()
+    {
+        using var context = NewContext();
+        var joueur = new Joueur { Nom = "Hero", Mail = "hero@test.com" };
+        context.Joueurs.Add(joueur);
+        context.SaveChanges();
+
+        var controller = new PartieController(context, new ThrowingDonjonGenerator());
+
+        var result = await controller.DemarrerPartie(joueur.Id, System.Threading.CancellationToken.None);
+        var status = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(500, status.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutPartie_IdDifferent_RetourneBadRequest()
+    {
+        using var context = NewContext();
+        var partie = new Partie { Id = Guid.NewGuid(), JoueurId = Guid.NewGuid() };
+        context.Parties.Add(partie);
+        await context.SaveChangesAsync();
+
+        var controller = new PartieController(context, new FakeDonjonGenerator());
+        var response = await controller.PutPartie(Guid.NewGuid(), partie);
+
+        Assert.IsType<BadRequestResult>(response);
+    }
+
+    [Fact]
+    public async Task DeletePartie_Inexistante_RetourneNotFound()
+    {
+        using var context = NewContext();
+        var controller = new PartieController(context, new FakeDonjonGenerator());
+
+        var response = await controller.DeletePartie(Guid.NewGuid());
+
+        Assert.IsType<NotFoundResult>(response);
+    }
+
+    private sealed class ThrowingDonjonGenerator : IDonjonGenerator
+    {
+        public Task<Partie> DemarrerPartieAsync(Guid joueurId, System.Threading.CancellationToken cancellationToken = default)
+        {
+            throw new Exception("fail");
+        }
+    }
 }
