@@ -58,6 +58,7 @@ namespace BlazorGame.Api.Controllers
         {
             var stats = _context.Parties
                 .Where(p => p.EstTerminee)
+                .AsEnumerable() // in-memory grouping
                 .GroupBy(p => p.JoueurId)
                 .ToDictionary(
                     g => g.Key,

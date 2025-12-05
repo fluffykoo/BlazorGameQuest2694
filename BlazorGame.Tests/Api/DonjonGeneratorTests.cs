@@ -91,10 +91,17 @@ public class DonjonGeneratorTests : DbTestBase
         Assert.Equal(Enumerable.Range(1, 5), partie.Salles.Select(s => s.Position));
         Assert.All(partie.Salles, s =>
         {
-            Assert.False(string.IsNullOrWhiteSpace(s.NomMonstre));
-            Assert.False(string.IsNullOrWhiteSpace(s.ImageMonstre));
-            Assert.True(s.PvMonstre >= 12); // 8 + (pos * 4) min
-            Assert.True(s.ForceMonstre >= 3); // 1 + (pos * 2) min
+            if (s.ChoixPossible.Contains(ChoixAction.Combattre))
+            {
+                Assert.False(string.IsNullOrWhiteSpace(s.NomMonstre));
+                Assert.False(string.IsNullOrWhiteSpace(s.ImageMonstre));
+                Assert.True(s.PvMonstre >= 12); // 8 + (pos * 4) min
+                Assert.True(s.ForceMonstre >= 3); // 1 + (pos * 2) min
+            }
+            else
+            {
+                Assert.False(string.IsNullOrWhiteSpace(s.Description));
+            }
         });
 
         Assert.Equal(NiveauDifficulte.Facile, partie.Salles[0].Niveau);
