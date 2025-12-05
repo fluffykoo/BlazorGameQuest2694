@@ -7,6 +7,13 @@
 <h1>@donjon?.Nom</h1>
 <p>@donjon?.Description</p>
 
+@if (partieTerminee)
+{
+    <div class="alert alert-danger">
+        Partie terminée : vous êtes mort ou avez fini l’aventure. Lance une nouvelle aventure ou consulte ton score.
+    </div>
+}
+
 @if (partie is not null)
 {
     <a class="btn btn-outline-warning"
@@ -49,7 +56,7 @@ else
                     : "images/salles/porte_fermee.png";
 
                 <button class="room-node @(isUnlocked ? "room-unlocked" : "room-locked")"
-                        disabled="@(!isUnlocked)"
+                        disabled="@(!isUnlocked || partieTerminee)"
                         @onclick="() => OuvrirSalle(salle)">
                     
                     <div class="room-node-inner">
@@ -73,6 +80,7 @@ else
     private int prochaineSalle;
     private int scoreTotal;
     private int scoreMax;
+    private bool partieTerminee;
 
     protected override async Task OnInitializedAsync()
     {
@@ -82,6 +90,7 @@ else
 
         donjon = partie.Donjon;
         salles = partie.Salles?.OrderBy(s => s.Position).ToList() ?? new List<Salle>();
+        partieTerminee = partie.EstTerminee;
 
         // Score actuel
         scoreTotal = partie.ScoreFinal;
@@ -101,6 +110,11 @@ else
 
     private void OuvrirSalle(Salle salle)
     {
+        if (partieTerminee)
+        {
+            Navigation.NavigateTo($"/score/{partieId}");
+            return;
+        }
         Navigation.NavigateTo($"/salle/{partieId}");
     }
 }

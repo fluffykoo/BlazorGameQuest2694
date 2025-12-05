@@ -103,4 +103,24 @@ public class DonjonGeneratorTests : DbTestBase
         Assert.Equal(NiveauDifficulte.Moyen, partie.Salles[3].Niveau);
         Assert.Equal(NiveauDifficulte.Difficile, partie.Salles[4].Niveau);
     }
+
+    [Fact]
+    public async Task DemarrerPartie_ContientCombatEtCoffre()
+    {
+        using var context = NewContext();
+        var joueur = new Joueur { Id = Guid.NewGuid(), Nom = "Mix", Mail = "mix@test.com" };
+        context.Joueurs.Add(joueur);
+        context.SaveChanges();
+
+        var template = new DonjonTemplate("Mix", "desc", 4, 4);
+        var generator = new DonjonGenerator(context, new[] { template }, new Random(123));
+
+        var partie = await generator.DemarrerPartieAsync(joueur.Id);
+
+        var combats = partie.Salles.Count(s => s.ChoixPossible.Contains(ChoixAction.Combattre));
+        var coffres = partie.Salles.Count(s => !s.ChoixPossible.Contains(ChoixAction.Combattre));
+
+        Assert.True(combats > coffres);
+        Assert.True(coffres >= 1);
+    }
 }

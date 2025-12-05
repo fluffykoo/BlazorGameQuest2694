@@ -55,9 +55,11 @@ public class DonjonGenerator : IDonjonGenerator
             Salles = new List<Salle>()
         };
 
+        var types = ConstruireTypesDeSalle(nbSalles);
         for (int position = 1; position <= nbSalles; position++)
         {
-            partie.Salles.Add(GenererSalleAleatoire(partieId, donjon.Id, position));
+            var isCombat = types[position - 1];
+            partie.Salles.Add(GenererSalleAleatoire(partieId, donjon.Id, position, isCombat));
         }
 
         _context.Parties.Add(partie);
@@ -71,11 +73,34 @@ public class DonjonGenerator : IDonjonGenerator
         return partie;
     }
 
-    private Salle GenererSalleAleatoire(Guid partieId, Guid donjonId, int position)
+    private List<bool> ConstruireTypesDeSalle(int nbSalles)
+    {
+        // On force un mix : majoritairement combat, au moins un coffre si on a plus d'une salle
+        var combatsVoulus = Math.Max((int)Math.Round(nbSalles * 0.7), 1);
+        var coffresVoulus = nbSalles - combatsVoulus;
+        if (coffresVoulus == 0 && nbSalles > 1)
+        {
+            coffresVoulus = 1;
+            combatsVoulus = nbSalles - coffresVoulus;
+        }
+
+        var types = Enumerable.Repeat(true, combatsVoulus)  // true = combat
+            .Concat(Enumerable.Repeat(false, coffresVoulus)) // false = coffre
+            .ToList();
+
+        // Shuffle
+        for (int i = types.Count - 1; i > 0; i--)
+        {
+            int j = _random.Next(i + 1);
+            (types[i], types[j]) = (types[j], types[i]);
+        }
+        return types;
+    }
+
+    private Salle GenererSalleAleatoire(Guid partieId, Guid donjonId, int position, bool isCombat)
     {
         var typesMonstres = new[] { "Gobelin", "Orc", "Squelette", "Dragonnet" };
         var images = new[] { "goblin.png", "orc.png", "skeleton.png", "dragon.png" };
-        bool isCombat = _random.Next(100) >= 40; // 60 % combat, 40 % coffre
 
         var difficulte = position switch
         {

@@ -97,18 +97,33 @@ else
             else
             {
                 <div class="action-buttons">
-                    <button class="btn-action btn-combat" disabled="@actionFaite"
-                            @onclick="@(() => ExecuterAction(ChoixAction.Combattre))">
-                        Combattre
-                    </button>
-                    <button class="btn-action btn-flee" disabled="@actionFaite"
-                            @onclick="@(() => ExecuterAction(ChoixAction.Fuir))">
-                        Fuir
-                    </button>
-                    <button class="btn-action btn-search" disabled="@actionFaite"
-                            @onclick="@(() => ExecuterAction(ChoixAction.Fouiller))">
-                        Fouiller
-                    </button>
+                    @if (Peut(ChoixAction.Combattre))
+                    {
+                        <button class="btn-action btn-combat" disabled="@actionFaite"
+                                @onclick="@(() => ExecuterAction(ChoixAction.Combattre))">
+                            Combattre
+                        </button>
+                    }
+                    @if (Peut(ChoixAction.Fuir))
+                    {
+                        <button class="btn-action btn-flee" disabled="@actionFaite"
+                                @onclick="@(() => ExecuterAction(ChoixAction.Fuir))">
+                            Fuir
+                        </button>
+                    }
+                    @if (Peut(ChoixAction.Fouiller))
+                    {
+                        <button class="btn-action btn-search" disabled="@actionFaite"
+                                @onclick="@(() => ExecuterAction(ChoixAction.Fouiller))">
+                            Fouiller
+                        </button>
+                    }
+                    @if (!Peut(ChoixAction.Combattre) && !Peut(ChoixAction.Fouiller) && !Peut(ChoixAction.Fuir))
+                    {
+                        <div class="alert alert-warning w-100 text-center mt-2">
+                            Aucune action disponible pour cette salle.
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -234,6 +249,11 @@ else
     private void RetourAuDonjon()
     {
         Navigation.NavigateTo($"/donjon/{PartieId}");
+    }
+
+    private bool Peut(ChoixAction action)
+    {
+        return currentSalle?.ChoixPossible?.Contains(action) == true;
     }
 }
 
