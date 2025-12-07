@@ -52,6 +52,22 @@ ou
 cd BlazorGame.Client
 dotnet run
 ```
+
+## Authentification Keycloak (Version 5)
+- Realm: `GameQuest`, rôles `joueur` et `admin`, utilisateurs: `user1/1234`, `user2/1234`, `admin/admin`.
+- Clients: `blazor-client` (OIDC pour le front) et `blazorgame-api` (audience API, roles dans realm_access/resource_access).
+- API sécurisée (Bearer JWT): tous les endpoints sont protégés ; routes admin-only (`/api/Donjons`, `/api/Administrateurs`, exports/toggle/reset joueurs) exigent le rôle `admin`. Routes de jeu acceptent `joueur` ou `admin`.
+- Obtenir un token (ex. user1) :
+  ```bash
+  curl -s -X POST \
+    -d "client_id=blazorgame-api" \
+    -d "grant_type=password" \
+    -d "username=user1" \
+    -d "password=1234" \
+    http://localhost:8080/realms/GameQuest/protocol/openid-connect/token
+  ```
+  Puis utiliser `Authorization: Bearer <access_token>` dans Postman/curl.
+- Vérifier les rôles : un endpoint admin doit répondre 403 avec user1 et 200 avec admin (ex: `GET http://localhost:5040/api/Donjons`). Un endpoint joueur (`GET http://localhost:5040/api/Partie`) doit répondre 401 sans token, 200 avec user1/admin.
 ## Définitions des tests
 
 ## Joueur
