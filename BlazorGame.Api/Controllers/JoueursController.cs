@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BlazorGame.Api.Data;
 using BlazorGame.Domain;
@@ -6,6 +7,7 @@ namespace BlazorGame.Api.Controllers
     {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "joueur,admin")]
     public class JoueursController : ControllerBase
     {
         private readonly AventureDbContext _context;//récupération du contexte EF Core pour accéder à la base
@@ -54,6 +56,7 @@ namespace BlazorGame.Api.Controllers
 
         // Classement complet pour l'admin (actifs et inactifs)
         [HttpGet("classement-admin")]
+        [Authorize(Roles = "admin")]
         public IActionResult GetClassementAdmin()
         {
             var stats = _context.Parties
@@ -90,6 +93,7 @@ namespace BlazorGame.Api.Controllers
         }
 
         [HttpGet("export")]
+        [Authorize(Roles = "admin")]
         public IActionResult ExportJson()
         {
             var stats = _context.Parties
@@ -127,6 +131,7 @@ namespace BlazorGame.Api.Controllers
         }
 
         [HttpGet("export-csv")]
+        [Authorize(Roles = "admin")]
         public IActionResult ExportCsv()
         {
             var stats = _context.Parties
@@ -170,6 +175,7 @@ namespace BlazorGame.Api.Controllers
 
         // POST : api/joueurs : crée un nouveau joueur
         [HttpPost]
+        [Authorize(Roles = "admin")]
         public IActionResult Create(Joueur joueur)
         {
             _context.Joueurs.Add(joueur);
@@ -179,6 +185,7 @@ namespace BlazorGame.Api.Controllers
 
         // PUT : api/joueurs/{id} : modifie un joueur existant
         [HttpPut("{id}")]
+        [Authorize(Roles = "admin")]
         public IActionResult Update(Guid id, Joueur joueur)
         {
             var existing = _context.Joueurs.Find(id);
@@ -194,6 +201,7 @@ namespace BlazorGame.Api.Controllers
 
         // PATCH : api/joueurs/{id}/toggle : active/désactive un joueur
         [HttpPatch("{id}/toggle")]
+        [Authorize(Roles = "admin")]
         public IActionResult Toggle(Guid id)
         {
             var joueur = _context.Joueurs.Find(id);
@@ -206,6 +214,7 @@ namespace BlazorGame.Api.Controllers
 
         // POST : api/joueurs/{id}/reset : supprime l'historique et remet le score à zéro
         [HttpPost("{id}/reset")]
+        [Authorize(Roles = "admin")]
         public IActionResult Reset(Guid id)
         {
             var joueur = _context.Joueurs.Find(id);
@@ -228,6 +237,7 @@ namespace BlazorGame.Api.Controllers
 
         // DELETE : api/joueurs/{id} : supprime un joueur
         [HttpDelete("{id}")]
+        [Authorize(Roles = "admin")]
         public IActionResult Delete(Guid id)
         {
             var joueur = _context.Joueurs.Find(id);

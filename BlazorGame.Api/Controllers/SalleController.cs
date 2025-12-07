@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BlazorGame.Domain;
@@ -7,6 +8,7 @@ namespace BlazorGame.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "joueur,admin")]
     public class SalleController : ControllerBase
     {
         private readonly AventureDbContext _context;

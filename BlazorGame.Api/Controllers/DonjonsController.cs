@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BlazorGame.Api.Data;
 using BlazorGame.Domain;
@@ -6,6 +7,7 @@ namespace BlazorGame.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "admin")]
     public class DonjonsController : ControllerBase
     {
         private readonly AventureDbContext _context; // récupération du contexte EF Core pour accéder à la base
