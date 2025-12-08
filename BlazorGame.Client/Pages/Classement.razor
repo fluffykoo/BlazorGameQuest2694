@@ -1,7 +1,8 @@
 @page "/classement"
 @using System.Net.Http.Json
 @using BlazorGame.Client.Models
-@inject HttpClient Http
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject IHttpClientFactory ClientFactory
 
 <PageTitle>Classement</PageTitle>
 
@@ -55,10 +56,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var api = ClientFactory.CreateClient("Api");
         try
         {
-            var data = await Http.GetFromJsonAsync<List<ClassementEntry>>("api/Joueurs/classement");
+            var data = await api.GetFromJsonAsync<List<ClassementEntry>>("api/Joueurs/classement");
             joueurs = data ?? new();
+        }
+        catch (AccessTokenNotAvailableException tokenEx)
+        {
+            tokenEx.Redirect();
         }
         catch (Exception ex)
         {

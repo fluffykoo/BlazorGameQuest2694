@@ -2,10 +2,11 @@
 @using BlazorGame.Domain
 @using System.Net.Http.Json
 @inject NavigationManager Navigation
-@inject HttpClient Http
+@inject IHttpClientFactory ClientFactory
 @inject IJSRuntime JS
 @inject BlazorGame.Client.Services.PlayerState PlayerState
 @using System.Linq
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 
 <PageTitle>Nouvelle Aventure</PageTitle>
 
@@ -79,10 +80,10 @@
 
         try
         {
-            var response = await Http.PostAsync(
+            var api = ClientFactory.CreateClient("Api");
+            var response = await api.PostAsync(
                 $"api/Partie/demarrer?joueurId={PlayerState.CurrentJoueurId}",
-                content: null
-            );
+                content: null);
 
             if (response.IsSuccessStatusCode)
             {
@@ -103,6 +104,10 @@
             {
                 MessageStatut = "Erreur lors de la création du donjon. Veuillez réessayer.";
             }
+        }
+        catch (AccessTokenNotAvailableException tokenEx)
+        {
+            tokenEx.Redirect();
         }
         catch (Exception ex)
         {

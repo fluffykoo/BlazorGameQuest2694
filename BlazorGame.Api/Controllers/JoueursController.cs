@@ -175,7 +175,7 @@ namespace BlazorGame.Api.Controllers
 
         // POST : api/joueurs : crée un nouveau joueur
         [HttpPost]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "joueur,admin")]
         public IActionResult Create(Joueur joueur)
         {
             _context.Joueurs.Add(joueur);

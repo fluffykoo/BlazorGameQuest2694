@@ -1,98 +1,101 @@
 @page "/joueurs"
 @using BlazorGame.Domain
 @using System.Net.Http.Json
-@inject HttpClient Http
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @inject BlazorGame.Client.Services.PlayerState PlayerState
+@attribute [Authorize]
+@inherits OwningComponentBase
 
-<PageTitle>Choisir un joueur</PageTitle>
+<PageTitle>Joueur connecté</PageTitle>
 
 <div class="container mt-4">
-    <h2>Choisir ou créer un joueur</h2>
+    <h2>Joueur connecté</h2>
 
     @if (loading)
     {
-        <p>Chargement des joueurs...</p>
+        <p>Chargement / association du joueur...</p>
     }
-    else
+    else if (!string.IsNullOrEmpty(message))
     {
-        @if (joueurs.Count == 0)
-        {
-            <div class="alert alert-info">Aucun joueur. Créez-en un ci-dessous.</div>
-        }
-        else
-        {
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Nom</th>
-                        <th>Mail</th>
-                        <th>Score</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var j in joueurs)
-                    {
-                        <tr class="align-middle">
-                            <td>@j.Nom</td>
-                            <td>@j.Mail</td>
-                            <td>@j.ScoreTotal</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" @onclick="() => Choisir(j)">
-                                    Utiliser
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
+        <div class="alert alert-danger">@message</div>
     }
-
-    <div class="card mt-4">
-        <div class="card-body">
-            <h5 class="card-title">Créer un nouveau joueur</h5>
-            <div class="mb-3">
-                <label class="form-label">Nom</label>
-                <input class="form-control" @bind="nouveauNom" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input class="form-control" type="email" @bind="nouveauMail" />
-            </div>
-            <button class="btn btn-success" @onclick="Creer">Créer et utiliser</button>
-            @if (!string.IsNullOrEmpty(message))
-            {
-                <div class="mt-2 text-danger">@message</div>
-            }
+    else if (joueurActif is not null)
+    {
+        <div class="alert alert-success">
+            <strong>@joueurActif.Nom</strong> (@joueurActif.Mail) est associé à votre session.
         </div>
-    </div>
+        <p>Score : @joueurActif.ScoreTotal</p>
+        <button class="btn btn-primary" @onclick="@AllerAventure">Commencer / reprendre une aventure</button>
+    }
 </div>
 
 @code {
-    private List<Joueur> joueurs = new();
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private Joueur? joueurActif;
     private bool loading = true;
-    private string nouveauNom = string.Empty;
-    private string nouveauMail = string.Empty;
     private string? message;
 
     protected override async Task OnInitializedAsync()
     {
-        await ChargerJoueurs();
+        await AssocierJoueurConnecte();
     }
 
-    private async Task ChargerJoueurs()
+    private async Task AssocierJoueurConnecte()
     {
         loading = true;
         try
         {
-            var data = await Http.GetFromJsonAsync<List<Joueur>>("api/Joueurs");
-            joueurs = data ?? new List<Joueur>();
+            var api = ClientFactory.CreateClient("Api");
+            var authState = AuthStateTask is null ? null : await AuthStateTask;
+            var user = authState?.User;
+            if (user == null || !user.Identity?.IsAuthenticated == true)
+            {
+                message = "Utilisateur non authentifié.";
+                return;
+            }
+
+            var username = user.FindFirst("preferred_username")?.Value ?? user.Identity?.Name ?? "joueur";
+            var email = user.FindFirst(ClaimTypes.Email)?.Value
+                        ?? user.FindFirst("email")?.Value
+                        ?? $"{username}@gamequest.local";
+
+            var data = await api.GetFromJsonAsync<List<Joueur>>("api/Joueurs") ?? new();
+
+            var existant = data.FirstOrDefault(j =>
+                string.Equals(j.Mail, email, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(j.Nom, username, StringComparison.OrdinalIgnoreCase));
+
+            if (existant is not null)
+            {
+                joueurActif = existant;
+            }
+            else
+            {
+                var response = await api.PostAsJsonAsync("api/Joueurs", new Joueur
+                {
+                    Nom = username,
+                    Mail = email
+                });
+                response.EnsureSuccessStatusCode();
+                joueurActif = await response.Content.ReadFromJsonAsync<Joueur>();
+            }
+
+            if (joueurActif is not null)
+            {
+                PlayerState.SetPlayer(joueurActif.Id, joueurActif.Nom);
+            }
+        }
+        catch (AccessTokenNotAvailableException tokenEx)
+        {
+            tokenEx.Redirect();
         }
         catch (Exception ex)
         {
-            message = $"Erreur chargement joueurs : {ex.Message}";
+            message = $"Erreur association joueur : {ex.Message}";
         }
         finally
         {
@@ -100,40 +103,8 @@
         }
     }
 
-    private void Choisir(Joueur j)
+    private void AllerAventure()
     {
-        PlayerState.SetPlayer(j.Id, j.Nom);
         Navigation.NavigateTo("/nouvelle-aventure");
-    }
-
-    private async Task Creer()
-    {
-        message = null;
-        if (string.IsNullOrWhiteSpace(nouveauNom) || string.IsNullOrWhiteSpace(nouveauMail))
-        {
-            message = "Nom et email sont requis.";
-            return;
-        }
-
-        try
-        {
-            var response = await Http.PostAsJsonAsync("api/Joueurs", new Joueur
-            {
-                Nom = nouveauNom.Trim(),
-                Mail = nouveauMail.Trim()
-            });
-            response.EnsureSuccessStatusCode();
-
-            var joueurCree = await response.Content.ReadFromJsonAsync<Joueur>();
-            if (joueurCree != null)
-            {
-                PlayerState.SetPlayer(joueurCree.Id, joueurCree.Nom);
-                Navigation.NavigateTo("/nouvelle-aventure");
-            }
-        }
-        catch (Exception ex)
-        {
-            message = $"Erreur création joueur : {ex.Message}";
-        }
     }
 }

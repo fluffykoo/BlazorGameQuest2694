@@ -1,7 +1,8 @@
 @page "/score/{PartieId:guid}"
 @using BlazorGame.Domain
 @using System.Net.Http.Json
-@inject HttpClient Http
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 
 <PageTitle>Score de l'aventure</PageTitle>
@@ -51,7 +52,8 @@
         isLoading = true;
         try
         {
-            partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{PartieId}");
+            var api = ClientFactory.CreateClient("Api");
+            partie = await api.GetFromJsonAsync<Partie>($"api/Partie/{PartieId}");
             if (partie == null)
             {
                 message = "Partie introuvable.";
@@ -60,10 +62,14 @@
 
             if (!partie.EstTerminee)
             {
-                await Http.PatchAsJsonAsync(
+                await api.PatchAsJsonAsync(
                     $"api/Partie/{PartieId}/terminer",
                     new { scoreFinal = partie.ScoreFinal });
             }
+        }
+        catch (AccessTokenNotAvailableException tokenEx)
+        {
+            tokenEx.Redirect();
         }
         catch (Exception ex)
         {

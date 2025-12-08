@@ -1,0 +1,29 @@
+@page "/authentication/{action}"
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@attribute [AllowAnonymous]
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<RemoteAuthenticatorView Action="@Action" OnLogInSucceeded="OnLoginSucceeded" />
+
+@code {
+    [Parameter] public string? Action { get; set; }
+
+    private async Task OnLoginSucceeded(RemoteAuthenticationState state)
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var roles = authState.User
+            .FindAll("roles")
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (roles.Contains("admin"))
+        {
+            Navigation.NavigateTo("/admin", forceLoad: true);
+        }
+        else
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+}

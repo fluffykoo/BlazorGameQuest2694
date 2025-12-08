@@ -1,9 +1,10 @@
 @page "/salle/{PartieId:guid}"
 @using BlazorGame.Domain
-@inject HttpClient Http
+@inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @inject BlazorGame.Client.Services.PlayerState PlayerState
 @using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 
 @if (currentSalle == null)
 {
@@ -165,7 +166,8 @@ else
 
         try
         {
-            var partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{PartieId}");
+            var api = ClientFactory.CreateClient("Api");
+            var partie = await api.GetFromJsonAsync<Partie>($"api/Partie/{PartieId}");
 
             if (partie == null)
             {
@@ -193,6 +195,10 @@ else
                 messageResultat = string.Empty;
             }
         }
+        catch (AccessTokenNotAvailableException tokenEx)
+        {
+            tokenEx.Redirect();
+        }
         catch (Exception ex)
         {
             messageResultat = $"Erreur de connexion à l'API: {ex.Message}";
@@ -205,7 +211,8 @@ else
 
         try
         {
-            var response = await Http.PatchAsJsonAsync($"api/Salle/{currentSalle.Id}/action", action);
+            var api = ClientFactory.CreateClient("Api");
+            var response = await api.PatchAsJsonAsync($"api/Salle/{currentSalle.Id}/action", action);
             response.EnsureSuccessStatusCode();
 
             currentSalle.Resultat = await response.Content.ReadFromJsonAsync<ActionResultat>();
@@ -222,7 +229,7 @@ else
                         : "Aventure terminée.";
 
                     // marque la partie comme terminée côté API
-                    await Http.PatchAsJsonAsync(
+                    await api.PatchAsJsonAsync(
                         $"api/Partie/{PartieId}/terminer",
                         new { scoreFinal = currentSalle.Resultat.ScoreTotal });
                 }

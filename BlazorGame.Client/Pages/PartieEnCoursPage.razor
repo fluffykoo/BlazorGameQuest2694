@@ -1,7 +1,8 @@
 @page "/partie-en-cours"
 @using BlazorGame.Domain
 @using System.Net.Http.Json
-@inject HttpClient Http
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @inject BlazorGame.Client.Services.PlayerState PlayerState
 
@@ -58,7 +59,8 @@ else
         try
         {
             // On récupère toutes les parties du joueur
-            var parties = await Http.GetFromJsonAsync<List<Partie>>(
+            var api = ClientFactory.CreateClient("Api");
+            var parties = await api.GetFromJsonAsync<List<Partie>>(
                 $"api/Partie/joueur/{PlayerState.CurrentJoueurId}");
 
             if (parties is not null && parties.Any())
@@ -76,6 +78,10 @@ else
                         .Count(s => s.EstVisitee) ?? 0;
                 }
             }
+        }
+        catch (AccessTokenNotAvailableException tokenEx)
+        {
+            tokenEx.Redirect();
         }
         finally
         {

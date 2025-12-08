@@ -1,8 +1,9 @@
 @page "/donjon/{partieId:guid}"
 @using BlazorGame.Domain
 @using System.Net.Http.Json
-@inject HttpClient Http
+@inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 
 <h1>@donjon?.Nom</h1>
 <p>@donjon?.Description</p>
@@ -84,28 +85,36 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // On récupère la partie complète depuis l’API
-        partie = await Http.GetFromJsonAsync<Partie>($"api/Partie/{partieId}");
-        if (partie is null) return;
+        try
+        {
+            var api = ClientFactory.CreateClient("Api");
+            // On récupère la partie complète depuis l’API
+            partie = await api.GetFromJsonAsync<Partie>($"api/Partie/{partieId}");
+            if (partie is null) return;
 
-        donjon = partie.Donjon;
-        salles = partie.Salles?.OrderBy(s => s.Position).ToList() ?? new List<Salle>();
-        partieTerminee = partie.EstTerminee;
+            donjon = partie.Donjon;
+            salles = partie.Salles?.OrderBy(s => s.Position).ToList() ?? new List<Salle>();
+            partieTerminee = partie.EstTerminee;
 
-        // Score actuel
-        scoreTotal = partie.ScoreFinal;
+            // Score actuel
+            scoreTotal = partie.ScoreFinal;
 
-        // Estimation d’un score max : 100 pts max par salle
-        var nbSalles = partie.Salles?.Count ?? 0;
-        scoreMax = nbSalles > 0 ? nbSalles * 100 : 100;
+            // Estimation d’un score max : 100 pts max par salle
+            var nbSalles = partie.Salles?.Count ?? 0;
+            scoreMax = nbSalles > 0 ? nbSalles * 100 : 100;
 
-        // Prochaine salle non visitée
-        prochaineSalle = salles
-            .Where(s => !s.EstVisitee)
-            .OrderBy(s => s.Position)
-            .Select(s => s.Position)
-            .DefaultIfEmpty(1)
-            .First();
+            // Prochaine salle non visitée
+            prochaineSalle = salles
+                .Where(s => !s.EstVisitee)
+                .OrderBy(s => s.Position)
+                .Select(s => s.Position)
+                .DefaultIfEmpty(1)
+                .First();
+        }
+        catch (AccessTokenNotAvailableException tokenEx)
+        {
+            tokenEx.Redirect();
+        }
     }
 
     private void OuvrirSalle(Salle salle)

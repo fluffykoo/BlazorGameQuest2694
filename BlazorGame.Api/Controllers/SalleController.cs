@@ -8,7 +8,7 @@ namespace BlazorGame.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "joueur,admin")]
+    [Authorize(Roles = "joueur")]
     public class SalleController : ControllerBase
     {
         private readonly AventureDbContext _context;
