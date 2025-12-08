@@ -20,12 +20,13 @@ builder.Services.AddHttpClient("Api", client =>
     client.BaseAddress = new Uri(apiBase);
 })
 .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
+
 builder.Services.AddScoped<ApiAuthorizationMessageHandler>();
 
 // HttpClient utilisé automatiquement par injection
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Api"));
 
-// HttpClient pour Blazor (OIDC, assets)
+// HttpClient pour Blazor (OIDC + assets)
 builder.Services.AddScoped(sp => new HttpClient
 {
     BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
@@ -44,24 +45,23 @@ builder.Services.AddOidcAuthentication(options =>
 
     options.ProviderOptions.ResponseType = "code";
 
-    // ------------- IMPORTANT : CALLBACKS OBLIGATOIRES -------------
     options.ProviderOptions.RedirectUri =
         "http://localhost:5000/authentication/login-callback";
 
     options.ProviderOptions.PostLogoutRedirectUri =
         "http://localhost:5000/authentication/logout-callback";
-    // --------------------------------------------------------------
 
-    // Scopes standard + scope pour audience si nécessaire
+    // AUCUNE ligne SaveTokens ici en WASM
+
     options.ProviderOptions.DefaultScopes.Add("openid");
     options.ProviderOptions.DefaultScopes.Add("profile");
     options.ProviderOptions.DefaultScopes.Add("email");
 
-    // Claims utilisés côté Blazor
     options.UserOptions.RoleClaim = "roles";
     options.UserOptions.NameClaim = "preferred_username";
 });
 
+builder.Services.AddScoped<AccountClaimsPrincipalFactory<RemoteUserAccount>, KeycloakClaimsPrincipalFactory>();
 // -------------------------------
 // État du joueur côté client
 // -------------------------------

@@ -10,7 +10,7 @@ namespace BlazorGame.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "joueur")]
+    [Authorize(Roles = "joueur,admin")]
     public class PartieController : ControllerBase
     {
         private readonly AventureDbContext _context;
@@ -28,6 +28,7 @@ namespace BlazorGame.Api.Controllers
         //  - une Partie liée au Joueur + Donjon
         //  - des Salles procédurales liées Partie + Donjon
         [HttpPost("demarrer")]
+        [Authorize(Roles = "joueur")]
         public async Task<ActionResult<Partie>> DemarrerPartie([FromQuery] Guid joueurId, CancellationToken cancellationToken)
         {
             if (joueurId == Guid.Empty)

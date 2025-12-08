@@ -1,8 +1,8 @@
 @page "/authentication/{action}"
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @attribute [AllowAnonymous]
-@inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
 <RemoteAuthenticatorView Action="@Action" OnLogInSucceeded="OnLoginSucceeded" />
 
@@ -17,13 +17,6 @@
             .Select(c => c.Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        if (roles.Contains("admin"))
-        {
-            Navigation.NavigateTo("/admin", forceLoad: true);
-        }
-        else
-        {
-            Navigation.NavigateTo("/", forceLoad: true);
-        }
+        Navigation.NavigateTo(roles.Contains("admin") ? "/admin" : "/", forceLoad: true);
     }
 }

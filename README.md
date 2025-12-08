@@ -68,6 +68,30 @@ dotnet run
   ```
   Puis utiliser `Authorization: Bearer <access_token>` dans Postman/curl.
 - Vérifier les rôles : un endpoint admin doit répondre 403 avec user1 et 200 avec admin (ex: `GET http://localhost:5040/api/Donjons`). Un endpoint joueur (`GET http://localhost:5040/api/Partie`) doit répondre 401 sans token, 200 avec user1/admin.
+
+### Front Blazor (WASM)
+- OIDC activé avec `blazor-client` : redirection automatique vers Keycloak si l’utilisateur n’est pas connecté.
+- Le token est injecté dans chaque requête HTTP vers l’API (`http://localhost:5040/`), logout via `authentication/logout`.
+- Navigation admin affichée uniquement pour le rôle `admin`; toutes les pages nécessitent l’authentification (route `/authentication/{action}` gérée par RemoteAuthenticatorView).
+
+### État de la V5 / limitations
+- Auth Keycloak en place, flux login/logout/callback dédiés.
+- Joueur : peut démarrer/reprendre une partie, consulter historique/score. Admin : dashboard (export, stats), mais l’accès rôle admin côté API reste obligatoire pour les données sensibles.
+- Menu commun avec lien Admin ; si connecté en joueur, l’API renverra 403 sur les routes admin (comportement attendu).
+- Si des redirections bloquent encore, vider le storage du navigateur et vérifier les URLs Keycloak (redirect/logout) dans la console.
+
+---
+## Version 5 – Sécurisation et finalisation
+Fonctionnalités livrées :
+- Intégration Keycloak (OIDC), rôles `joueur` / `admin`, clients `blazor-client` et `blazorgame-api`.
+- Front Blazor sécurisé : login/logout/callback dédiés, injection du bearer sur tous les appels API.
+- API protégée : jeu réservé aux rôles joueur/admin (démarrage partie réservé au joueur), routes admin protégées.
+- Dashboard admin : stats joueurs/parties, exports JSON/CSV, toggle/reset joueur.
+- Menu commun (joueur/admin) avec lien Admin ; côté API, les routes admin restent filtrées (403 pour un joueur).
+
+Points restant à surveiller / limitations :
+- Dépendance au cache navigateur : en cas de boucle d’auth, vider le storage et vérifier les URLs Keycloak (redirect/logout).
+- La page Admin s’affiche pour tout utilisateur connecté, mais l’API renvoie 403 si le rôle admin est absent.
 ## Définitions des tests
 
 ## Joueur
@@ -478,7 +502,7 @@ Ouvrir ensuite le client sur l’URL indiquée par `dotnet run` (par défaut `ht
 </details>
 
 ---
-<details open>
+<details>
 <summary>Version 4 – Tableau de bord admin, classement et exports</summary>
 
 ## Fonctionnalités principales
@@ -511,4 +535,208 @@ Ouvrir ensuite le client sur l’URL indiquée par `dotnet run` (par défaut `ht
 - `Joueur.EstActif` (bool) : permet de désactiver un joueur sans le supprimer.
 - Recalcul du `ScoreTotal` à la fin d’une partie et sur la dernière salle visitée.
 
+</details open>
+
+<details open>
+<summary>Version 5 – Sécurisation et finalisation</summary>
+
+## Fonctionnalités principales
+- Intégration Keycloak (OIDC), rôles `joueur` / `admin`, clients `blazor-client` et `blazorgame-api`.
+- Front Blazor sécurisé : login/logout/callback dédiés, injection du bearer sur tous les appels API.
+- API protégée : jeu réservé aux rôles joueur/admin (démarrage partie réservé au joueur), routes admin protégées.
+- Dashboard admin : stats joueurs/parties, exports JSON/CSV, toggle/reset joueur.
+- Menu commun (joueur/admin) avec lien Admin ; côté API, les routes admin restent filtrées (403 pour un joueur).
+
+## Limitations / points de vigilance
+- En cas de boucle d’auth, vider le storage du navigateur et vérifier les URLs Keycloak (redirect/logout).
+- La page Admin est accessible côté UI, mais l’API renvoie 403 si le rôle admin est absent (comportement attendu).
+
 </details>
+# BlazorGameQuest – README 
+
+## Présentation générale
+BlazorGameQuest est un jeu d’aventure développé en **.NET 9**, **C#**, **Blazor WebAssembly** et une API **ASP.NET Core** sécurisée avec **Keycloak**. Le joueur explore un donjon généré aléatoirement, face à des salles de combat ou des coffres, et tente d’obtenir le meilleur score. Un administrateur accède à un tableau de bord complet (classement, stats, exports JSON/CSV).
+
+---
+# Structure de la solution
+| Projet | Rôle |
+|--------|-------|
+| **BlazorGame.Client** | Frontend Blazor WebAssembly (UI + Auth OIDC) |
+| **BlazorGame.Api** | API REST + EF Core + PostgreSQL |
+| **BlazorGame.Domain** | Modèles métiers (Joueur, Partie, Salle…) |
+| **BlazorGame.Tests** | Tests unitaires et API |
+
+---
+# VERSION 1 — Structure Blazor & Modèles de base
+## Fonctionnalités
+- Pages : Accueil, Nouvelle Aventure, Classement, Admin.
+- Composant `Salle` statique.
+- Modèles métiers initiaux : Joueur, Partie, Salle.
+- Navigation + premières maquettes UI.
+
+## Tests présents
+- SalleTests : cohérence modèle
+- PartieTests : nombre de salles, état initial
+- ActionResultatTests : cohérence des enums et valeurs
+- ControllerTests : premiers tests CRUD EF Core
+
+Exécution :
+```bash
+dotnet test
+```
+
+Lancement client :
+```bash
+cd BlazorGame.Client
+dotnet run
+```
+
+---
+# VERSION 2 — Base de données PostgreSQL + API REST
+## Nouveautés
+- PostgreSQL + EF Core
+- Migrations et persistance
+- Relations complètes (Joueur ↔ Partie ↔ Salle)
+- CRUD complets via contrôleurs
+- Swagger intégré
+
+Swagger : http://localhost:5040/swagger
+
+Contrôleurs principaux : Joueurs, Parties, Salles, Donjons, Administrateurs.
+
+---
+# VERSION 3 — Gameplay, donjons et logique de jeu
+## Ajouts majeurs
+- Génération procédurale de donjons.
+- Types de salles : **combat** et **coffre**.
+- Actions disponibles en fonction de la salle.
+- Calcul complet du score + sauvegarde.
+- Page *Salle* interactive.
+
+## Gameplay
+### Combat
+- Combattre : +30 (ou +20×niveau), échec −15
+- Fuir : +5
+- Fouiller : trésor +25 ou piège −10
+
+### Coffre
+- Fouiller : +40 ou −20
+- Fuir : 0
+
+### Fin de partie
+- Dernière salle visitée → partie terminée
+- Score < 0 → mort
+- Score final enregistré
+
+## Pages Blazor ajoutées
+- `/nouvelle-aventure`
+- `/salle/{partieId}`
+- `/historique`
+- `/classement`
+
+## API enrichie
+- Historique joueur
+- Reprise de partie en cours
+- PATCH fin de partie
+
+---
+# VERSION 4 — Tableau de bord Admin + Classement + Exports
+## Fonctionnalités
+- Classement public + classement complet réservé à l'admin.
+- Dashboard admin :
+  - Stats (joueurs actifs/inactifs, parties, score cumulé…)
+  - Gestion des joueurs (toggle actif/inactif)
+  - Liste des parties + détail des salles
+  - Exports JSON & CSV
+
+## Endpoints notables
+- `GET api/Joueurs/classement`
+- `GET api/Joueurs/classement-admin`
+- `PATCH api/Joueurs/{id}/toggle`
+- `GET api/Joueurs/export`
+- `GET api/Partie` avec salles + donjon + joueur
+
+---
+# VERSION 5 — Authentification & Sécurisation (Keycloak OIDC)
+## Keycloak (Realm GameQuest)
+**Rôles** : `joueur`, `admin`  
+**Utilisateurs** : user1/1234, user2/1234, admin/admin
+
+Clients :
+- `blazor-client` (front Blazor WASM)
+- `blazorgame-api` (API protégée)
+
+## Sécurisation API
+| Endpoint | Accès |
+|----------|--------|
+| `/api/Donjons`, `/api/Administrateurs`, exports | admin uniquement |
+| `/api/Partie`, `/api/Salle` | joueur ou admin |
+
+### Tester un token via curl
+```bash
+curl -X POST \
+  -d "client_id=blazorgame-api" \
+  -d "grant_type=password" \
+  -d "username=user1" \
+  -d "password=1234" \
+  http://localhost:8080/realms/GameQuest/protocol/openid-connect/token
+```
+
+## Sécurisation du front Blazor
+- Redirection automatique vers Keycloak si utilisateur non authentifié.
+- Token automatiquement ajouté aux appels API.
+- Navigation conditionnelle selon rôle.
+- `RemoteAuthenticatorView` gère login/logout/callback.
+
+---
+# Limitations techniques version 5 
+## 1. **La page Admin n’est pas protégée côté UI**
+Blazor WASM ne permet pas de bloquer complètement l’accès à une route sans *toujours* télécharger l’app.  
+
+ **Actuellement :** pour entrer sur `/admin`, il suffit d’être connecté via Keycloak (n’importe quel utilisateur).  
+**La vraie protection est côté API** : un utilisateur non-admin obtient systématiquement **403 Forbidden** sur tous les endpoints sensibles.  
+
+**Conclusion** : L’UI affiche la page, mais **aucune donnée admin ne peut être récupérée sans le rôle admin**, ce qui garantit la sécurité réelle.
+
+## 2. **Problème Keycloak : la déconnexion ne fonctionne pas toujours**
+Le logout Keycloak renvoie parfois :
+```
+The logout was not initiated from within the page
+```
+Ce bug est documenté dans Keycloak.  
+
+La session reste active → l’utilisateur reste connecté.
+
+### Contournement fonctionnel
+1. Vider **localStorage + sessionStorage** du navigateur.  
+2. Recharger l’app (`dotnet run`).  
+3. Se reconnecter avec un autre utilisateur.
+
+Cela permet de changer d’utilisateur et d’éviter la boucle d’auth.
+
+---
+# Tests – Définition et couverture
+## Joueur
+- ID unique, score initial = 0, historique vide, date de connexion correcte
+
+## Partie
+- ID + date OK, nb de salles entre 1 et 5, non terminée au départ
+
+## Salle
+- Champs valides, choix possibles corrects, résultat cohérent
+
+## ActionResultat
+- Champs valides, gain/perte logique, détection piège
+
+---
+# Lancer le projet
+## API
+```bash
+cd BlazorGame.Api
+dotnet run
+```
+## Client
+```bash
+cd BlazorGame.Client
+dotnet run
+```
