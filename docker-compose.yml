@@ -1,16 +1,85 @@
 version: '3.9'
 
 services:
+  # --- Base de données ---
+  postgres:
+    image: postgres:15
+    container_name: aventuredb
+    environment:
+      POSTGRES_DB: AventureDB
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - blazorgame-network
+
+  # --- Authentification ---
   keycloak:
     image: quay.io/keycloak/keycloak:23.0.3
+    container_name: keycloak
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
-      KC_HOSTNAME: localhost
+      KC_HOSTNAME_URL: http://localhost:8080/
     command:
       - start-dev
     ports:
       - "8080:8080"
-    restart: always
+    networks:
+      - blazorgame-network
+
+  # --- Backend API ---
+  blazorgame-api:
+    build:
+      context: .
+      dockerfile: BlazorGame.Api/Dockerfile
+    container_name: blazorgame-api
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=AventureDB;Username=postgres;Password=postgres
+      - Jwt__Authority=http://keycloak:8080/realms/blazorgame
+      - Jwt__Audience=account
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - postgres
+      - keycloak
+    networks:
+      - blazorgame-network
+
+  # --- Frontend Client (Blazor WASM) ---
+  blazorgame-client:
+    build:
+      context: .
+      dockerfile: BlazorGame.Client/Dockerfile
+    container_name: blazorgame-client
+    depends_on:
+      - blazorgame-api
+    networks:
+      - blazorgame-network
+
+  # --- API Gateway (Point d'entrée unique) ---
+  blazorgame-gateway:
+    build:
+      context: .
+      dockerfile: BlazorGame.Gateway/Dockerfile
+    container_name: blazorgame-gateway
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - blazorgame-api
+      - blazorgame-client
+    networks:
+      - blazorgame-network
+
+networks:
+  blazorgame-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
