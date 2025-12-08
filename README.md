@@ -552,6 +552,16 @@ Ouvrir ensuite le client sur l’URL indiquée par `dotnet run` (par défaut `ht
 - La page Admin est accessible côté UI, mais l’API renvoie 403 si le rôle admin est absent (comportement attendu).
 
 </details>
+
+---
+
+## Tests et qualité
+- Tests unitaires : `BlazorGame.Tests` (xUnit) couvrent modèles domaine et contrôleurs API (48 tests).  
+- Lancer tous les tests :
+  ```bash
+  dotnet test
+  ```
+- Cibles d’amélioration : compléter la couverture autour du tableau de bord admin (exports/toggle/reset) et des flux d’auth côté client pour viser 80 %.
 # BlazorGameQuest – README 
 
 ## Présentation générale
